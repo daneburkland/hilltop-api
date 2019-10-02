@@ -1,0 +1,81 @@
+service: hilltop-recordingRunner
+
+# Create an optimized package for our functions
+package:
+  individually: true
+
+plugins:
+  - serverless-bundle # Package our functions with Webpack
+  - serverless-offline
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or fallsback to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  # Set the table name here so we can use it while testing locally
+  recordingTaskTableName: ${self:custom.stage}-recordingTasks2
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: dev
+  region: us-east-1
+
+  # These environment variables are made available to our functions
+  # under process.env.
+  environment:
+    recordingTaskTableName: ${self:custom.recordingTaskTableName}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      # Restrict our IAM role permissions to
+      # the specific table for the stage
+      Resource:
+        - "Fn::GetAtt": [RecordingTaskTable, Arn]
+
+functions:
+  # Defines an HTTP API endpoint that calls the main function in create.js
+  # - path: url path is /notes
+  # - method: POST request
+  # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
+  #     domain api call
+  # - authorizer: authenticate using the AWS IAM role
+  # TODO: authorize this endpoint with aws_iam
+  add:
+    handler: add.main
+    events:
+      - http:
+          path: add
+          method: post
+          cors: true
+  run:
+    handler: run.main
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [RecordingTaskTable, StreamArn]
+  # reinsert:
+  #   handler: reinsert.main
+  #   events:
+  #     - stream:
+  #       type: dynamodb
+  #       arn:
+  #         Fn::GetAtt: [RecordingTaskTable, StreamArn]
+
+# Create our resources with separate CloudFormation templates
+resources:
+  # DynamoDB
+  - ${file(../../resources/recording-task-table.yml)}

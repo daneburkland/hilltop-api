@@ -1,0 +1,19 @@
+Resources:
+  RecordingTaskTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.recordingTaskTableName}
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TimeToLiveSpecification:
+        AttributeName: expiration
+        Enabled: true
+      AttributeDefinitions:
+        - AttributeName: noteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: noteId
+          KeyType: HASH
+
+      # Set the capacity to auto-scale
+      BillingMode: PAY_PER_REQUEST
