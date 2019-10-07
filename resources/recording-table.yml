@@ -16,3 +16,12 @@ Resources:
 
       # Set the capacity to auto-scale
       BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  RecordingTableArn:
+    Value:
+      Fn::GetAtt:
+        - RecordingTable
+        - Arn
+    Export:
+      Name: ${self:custom.stage}-RecordingTableArn

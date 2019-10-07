@@ -4,12 +4,9 @@ import { success, failure } from "../../libs/response-lib";
 export async function main(event, context) {
   const data = JSON.parse(event.body);
   console.log(event);
-  const { testCode, runIntervalMinutes = 2, noteId } = data;
-  const userId = event.requestContext.identity.cognitoIdentityId;
-  // 8 hours
-  const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
+  const { noteId } = data;
 
-  const recordingUpdateParams = {
+  const recordingParams = {
     TableName: process.env.recordingTableName,
     Key: {
       userId: event.requestContext.identity.cognitoIdentityId,
@@ -17,27 +14,26 @@ export async function main(event, context) {
     },
     UpdateExpression: "SET isActive = :isActive",
     ExpressionAttributeValues: {
-      ":isActive": true
+      ":isActive": false
     }
   };
 
   try {
-    await dynamoDbLib.call("update", recordingUpdateParams);
-    console.log("successfully set recording: active");
+    await dynamoDbLib.call("update", recordingParams);
+    console.log("successfully set recording: paused");
   } catch (e) {
     return failure({ status: false });
   }
 
   const recordingTaskParams = {
     TableName: process.env.recordingTaskTableName,
-    Item: {
-      userId,
-      noteId,
-      expiration,
-      runIntervalMinutes,
-      isActive: true,
-      testCode: `${testCode}`,
-      createdAt: Date.now()
+    Key: {
+      userId: event.requestContext.identity.cognitoIdentityId,
+      noteId
+    },
+    UpdateExpression: "SET isActive = :isActive",
+    ExpressionAttributeValues: {
+      ":isActive": false
     }
   };
 
@@ -50,8 +46,8 @@ export async function main(event, context) {
   };
 
   try {
-    await dynamoDbLib.call("put", recordingTaskParams);
-    console.log("successfully added recording task");
+    await dynamoDbLib.call("update", recordingTaskParams);
+    console.log("successfully set recording task: paused");
     const recording = await dynamoDbLib.call("get", recordingGetParams);
     return success(recording.Item);
   } catch (e) {

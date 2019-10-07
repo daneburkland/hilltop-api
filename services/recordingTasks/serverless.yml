@@ -13,7 +13,8 @@ custom:
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
   # Set the table name here so we can use it while testing locally
-  recordingTaskTableName: ${self:custom.stage}-recordingTasks2
+  recordingTaskTableName: ${self:custom.stage}-recordingTasks
+  environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
 
 provider:
   name: aws
@@ -25,6 +26,8 @@ provider:
   # under process.env.
   environment:
     recordingTaskTableName: ${self:custom.recordingTaskTableName}
+    recordingTableName: ${file(../notes/serverless.yml):custom.recordingTableName}
+    hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
 
   iamRoleStatements:
     - Effect: Allow
@@ -44,6 +47,7 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTaskTable, Arn]
+        - "Fn::ImportValue": ${self:custom.stage}-RecordingTableArn
 
 functions:
   # Defines an HTTP API endpoint that calls the main function in create.js
@@ -52,7 +56,6 @@ functions:
   # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
   #     domain api call
   # - authorizer: authenticate using the AWS IAM role
-  # TODO: authorize this endpoint with aws_iam
   add:
     handler: add.main
     events:
@@ -60,6 +63,15 @@ functions:
           path: add
           method: post
           cors: true
+          authorizer: aws_iam
+  pause:
+    handler: pause.main
+    events:
+      - http:
+          path: pause
+          method: post
+          cors: true
+          authorizer: aws_iam
   run:
     handler: run.main
     events:
@@ -67,15 +79,21 @@ functions:
           type: dynamodb
           arn:
             Fn::GetAtt: [RecordingTaskTable, StreamArn]
-  # reinsert:
-  #   handler: reinsert.main
-  #   events:
-  #     - stream:
-  #       type: dynamodb
-  #       arn:
-  #         Fn::GetAtt: [RecordingTaskTable, StreamArn]
+  reinsert:
+    handler: reinsert.main
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [RecordingTaskTable, StreamArn]
 
 # Create our resources with separate CloudFormation templates
 resources:
   # DynamoDB
   - ${file(../../resources/recording-task-table.yml)}
+  - Outputs:
+      ApiGatewayRestApiId:
+        Value:
+          Ref: ApiGatewayRestApi
+        Export:
+          Name: ${self:custom.stage}-ApiGatewayRestApiId

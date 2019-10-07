@@ -2,19 +2,6 @@ import uuid from "uuid";
 import * as dynamoDbLib from "../../libs/dynamodb-lib";
 import { success, failure } from "../../libs/response-lib";
 
-// function removeEmptyStringElements(obj) {
-//   for (var prop in obj) {
-//     if (typeof obj[prop] === "object") {
-//       // dive deeper in
-//       removeEmptyStringElements(obj[prop]);
-//     } else if (obj[prop] === "") {
-//       // delete elements that are empty strings
-//       delete obj[prop];
-//     }
-//   }
-//   return obj;
-// }
-
 export async function main(event, context) {
   const data = JSON.parse(event.body);
   const id = uuid.v1();

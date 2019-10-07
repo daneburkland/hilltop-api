@@ -9,11 +9,15 @@ Resources:
         AttributeName: expiration
         Enabled: true
       AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
         - AttributeName: noteId
           AttributeType: S
       KeySchema:
-        - AttributeName: noteId
+        - AttributeName: userId
           KeyType: HASH
+        - AttributeName: noteId
+          KeyType: RANGE
 
       # Set the capacity to auto-scale
       BillingMode: PAY_PER_REQUEST
