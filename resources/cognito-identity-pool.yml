@@ -92,7 +92,7 @@ Resources:
                 Resource:
                   - Fn::Join:
                       - ""
-                      - - Fn::GetAtt: [AttachmentsBucket, Arn]
+                      - - Fn::GetAtt: [ScreenshotsBucket, Arn]
                         - "/private/"
                         - "$"
                         - "{cognito-identity.amazonaws.com:sub}/*"

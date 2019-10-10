@@ -1,5 +1,5 @@
 Resources:
-  AttachmentsBucket:
+  ScreenshotsBucket:
     Type: AWS::S3::Bucket
     Properties:
       # Set the CORS policy
@@ -17,8 +17,17 @@ Resources:
               - HEAD
             MaxAge: 3000
 
-# Print out the name of the bucket that is created
 Outputs:
-  AttachmentsBucketName:
+  ScreenshotsBucketName:
     Value:
-      Ref: AttachmentsBucket
+      Ref: ScreenshotsBucket
+    Export:
+      Name: ${self:custom.stage}-ScreenshotsBucket
+
+  ScreenshotsBucketArn:
+    Value:
+      Fn::GetAtt:
+        - ScreenshotsBucket
+        - Arn
+    Export:
+      Name: ${self:custom.stage}-ScreenshotsBucketArn
