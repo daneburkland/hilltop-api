@@ -13,9 +13,32 @@ Resources:
               - GET
               - PUT
               - POST
-              - DELETE
               - HEAD
             MaxAge: 3000
+
+  ScreenshotsBucketAllowPublicReadPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Principal: "*"
+            Effect: Allow
+            Action:
+              - "s3:GetObject"
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+                    - "/public/*"
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+                    - "/*"
+      Bucket:
+        Ref: ScreenshotsBucket
 
 Outputs:
   ScreenshotsBucketName:

@@ -92,10 +92,9 @@ Resources:
                 Resource:
                   - Fn::Join:
                       - ""
-                      - - Fn::GetAtt: [ScreenshotsBucket, Arn]
-                        - "/private/"
-                        - "$"
-                        - "{cognito-identity.amazonaws.com:sub}/*"
+                      - - "arn:aws:s3:::"
+                        - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+                        - "/*"
 
 # Print out the Id of the Identity Pool that is created
 Outputs:
