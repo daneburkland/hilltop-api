@@ -3,7 +3,7 @@ import { success, failure } from "../../libs/response-lib";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
-  const { testCode, runIntervalMinutes = 2, noteId } = data;
+  const { code, runIntervalMinutes = 2, noteId } = data;
   const userId = event.requestContext.identity.cognitoIdentityId;
   // 8 hours
   const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
@@ -15,10 +15,10 @@ export async function main(event, context) {
       noteId
     },
     UpdateExpression:
-      "SET isActive = :isActive, nextScheduledTest = :nextScheduledRun",
+      "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
     ExpressionAttributeValues: {
       ":isActive": true,
-      ":nextScheduledRun": expiration
+      ":nextScheduledTest": expiration
     }
   };
 
@@ -40,7 +40,7 @@ export async function main(event, context) {
       expiration,
       runIntervalMinutes,
       isActive: true,
-      testCode: `${testCode}`,
+      code: `${code}`,
       createdAt: Date.now()
     }
   };

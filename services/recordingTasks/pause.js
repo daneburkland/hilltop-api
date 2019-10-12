@@ -12,9 +12,11 @@ export async function main(event, context) {
       userId: event.requestContext.identity.cognitoIdentityId,
       noteId
     },
-    UpdateExpression: "SET isActive = :isActive",
+    UpdateExpression:
+      "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
     ExpressionAttributeValues: {
-      ":isActive": false
+      ":isActive": false,
+      ":nextScheduledTest": null
     }
   };
 

@@ -16,6 +16,10 @@ custom:
   # Load our secret environment variables based on the current stage.
   # Fallback to default if it is not in prod.
   environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
+  screenshotsBucketArn:
+    "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
+  screenshotsBucket:
+    "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
 
 provider:
   name: aws
@@ -27,6 +31,9 @@ provider:
   # under process.env.
   environment:
     recordingTableName: ${self:custom.recordingTableName}
+    screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
+    screenshotsBucket: ${self:custom.screenshotsBucket}
+    hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
 
   iamRoleStatements:
     - Effect: Allow
@@ -42,6 +49,16 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTable, Arn]
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+        - "s3:PutObjectAcl"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+            - "/*"
 
 functions:
   # Defines an HTTP API endpoint that calls the main function in create.js
