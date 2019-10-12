@@ -3,7 +3,6 @@ import { success, failure } from "../../libs/response-lib";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
-  console.log(event);
   const { testCode, runIntervalMinutes = 2, noteId } = data;
   const userId = event.requestContext.identity.cognitoIdentityId;
   // 8 hours
@@ -15,16 +14,21 @@ export async function main(event, context) {
       userId: event.requestContext.identity.cognitoIdentityId,
       noteId
     },
-    UpdateExpression: "SET isActive = :isActive",
+    UpdateExpression:
+      "SET isActive = :isActive, nextScheduledTest = :nextScheduledRun",
     ExpressionAttributeValues: {
-      ":isActive": true
+      ":isActive": true,
+      ":nextScheduledRun": expiration
     }
   };
 
   try {
     await dynamoDbLib.call("update", recordingUpdateParams);
-    console.log("successfully set recording: active");
+    console.log("Sucessfully updated recording:\n");
+    console.info(`noteId: ${noteId}`);
   } catch (e) {
+    console.error("Failed to update recording:\n");
+    console.error(e);
     return failure({ status: false });
   }
 
@@ -51,8 +55,11 @@ export async function main(event, context) {
 
   try {
     await dynamoDbLib.call("put", recordingTaskParams);
-    console.log("successfully added recording task");
+    console.log("Successfull added recording task for noteId:");
+    console.info(`noteId: ${noteId}`);
     const recording = await dynamoDbLib.call("get", recordingGetParams);
+    console.log("Successfully retrieved recording:\n");
+    console.info(`noteId: ${noteId}`);
     return success(recording.Item);
   } catch (e) {
     console.log("failed to save record", e);
