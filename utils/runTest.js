@@ -1,7 +1,6 @@
 import AWS from "aws-sdk";
 import uuid from "uuid";
 import axios from "axios";
-import { failure } from "../libs/response-lib";
 
 async function putObjectToS3({ key, data, bucket }) {
   var s3 = new AWS.S3();
@@ -16,10 +15,13 @@ async function putObjectToS3({ key, data, bucket }) {
   return { bucket, key };
 }
 
-export default async function runTest({ recording: { code, noteId } }) {
+export default async function runTest({
+  recording: { code, noteId, cookies }
+}) {
   // TODO: this should only run if 'active' is set
   console.log("Starting test run:\n");
   console.info("noteId:\n", noteId);
+  console.info("code:\n", code);
   let result, screenshots, resolvedScreenshots;
   const resultId = uuid.v1();
   try {
@@ -31,13 +33,22 @@ export default async function runTest({ recording: { code, noteId } }) {
       headers: {
         "Content-Type": "application/json"
       },
-      data: { code }
+      timeout: 15000,
+      data: { code, context: { cookies } }
     });
+    if (result.data.error) {
+      console.log("Failed to run test");
+      console.info("ERROR:\n");
+      console.info(result.data.error);
+      return { result };
+    }
     console.log("Successfully ran test");
-  } catch (e) {
+    console.info("RESULT:\n");
+    console.info(result);
+  } catch (err) {
     console.error("Failed to run function:\n");
-    console.error(e);
-    return failure(e);
+    console.error(err);
+    return err;
   }
   try {
     screenshots = result.data.screenshots.map(({ data }, i) =>
@@ -49,14 +60,14 @@ export default async function runTest({ recording: { code, noteId } }) {
     );
 
     console.log("Starting to store screenshots:\n");
-    console.info(screenshots);
     resolvedScreenshots = await Promise.all(screenshots);
     console.log("Resolved screenshots:\n");
     console.info("SCREENSHOTS:\n", resolvedScreenshots);
-    return { result, screenshots: resolvedScreenshots };
+    result.screenshots = resolvedScreenshots;
+    return { result };
   } catch (err) {
     console.error("Failed to store screenshots:\n");
     console.error(err);
-    return failure(err);
+    return err;
   }
 }

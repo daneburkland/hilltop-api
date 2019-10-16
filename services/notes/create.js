@@ -6,7 +6,7 @@ import { success, failure } from "../../libs/response-lib";
 export async function main(event, context) {
   const data = JSON.parse(event.body);
   const id = uuid.v1();
-  const { steps, puppeteerCode, location, code } = data;
+  const { steps, puppeteerCode, location, code, cookies } = data;
 
   const recording = {
     userId: event.requestContext.identity.cognitoIdentityId,
@@ -15,10 +15,14 @@ export async function main(event, context) {
     puppeteerCode: `${puppeteerCode}`,
     location,
     code,
+    cookies,
     createdAt: Date.now()
   };
 
-  const { result, screenshots } = await runTest({ recording });
+  const { result } = await runTest({ recording });
+
+  // TODO: better way to detect failure
+  if (result.data.error) return failure(result);
 
   // TODO: make a Recording class
   const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
@@ -30,7 +34,7 @@ export async function main(event, context) {
       status: result.status,
       statusText: result.statusText,
       headers: result.headers,
-      screenshots
+      screenshots: result.screenshots
     }
   ];
 
@@ -41,6 +45,7 @@ export async function main(event, context) {
 
   try {
     await dynamoDbLib.call("put", params);
+    console.info("FINISH");
     return success(params.Item);
   } catch (e) {
     console.log("failed to save record", e);

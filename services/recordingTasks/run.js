@@ -10,7 +10,10 @@ export async function main(event, context) {
   ).map(async ({ dynamodb }) => {
     const recording = AWS.DynamoDB.Converter.unmarshall(dynamodb.NewImage);
 
-    const { result, screenshots } = await runTest({ recording });
+    const { result } = await runTest({ recording });
+
+    // TODO: better way to detect failure
+    if (!result || !result.screenshots) return failure(result);
 
     const params = {
       TableName: process.env.recordingTableName,
@@ -29,7 +32,7 @@ export async function main(event, context) {
             status: result.status,
             statusText: result.statusText,
             headers: result.headers,
-            screenshots
+            screenshots: result.screenshots
           }
         ],
         ":empty_list": []
@@ -40,6 +43,7 @@ export async function main(event, context) {
       console.log("trying to save");
       await dynamoDbLib.call("update", params);
       console.log("successful save");
+      console.info("FINISH");
       return success({ status: true });
     } catch (e) {
       console.log("failure", e);
