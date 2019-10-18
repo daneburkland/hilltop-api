@@ -1,57 +1,28 @@
-import * as dynamoDbLib from "../../libs/dynamodb-lib";
 import { success, failure } from "../../libs/response-lib";
+import Recording from "../../classes/Recording";
+import TestRun from "../../classes/TestRun";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
   console.log(event);
   const { noteId } = data;
+  const userId = event.requestContext.identity.cognitoIdentityId;
 
-  const recordingParams = {
-    TableName: process.env.recordingTableName,
-    Key: {
-      userId: event.requestContext.identity.cognitoIdentityId,
-      noteId
-    },
-    UpdateExpression:
-      "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
-    ExpressionAttributeValues: {
-      ":isActive": false,
-      ":nextScheduledTest": null
-    }
-  };
+  const recording = Recording.from({ userId, noteId });
+  const testRun = TestRun.from({ userId, noteId });
 
   try {
-    await dynamoDbLib.call("update", recordingParams);
+    await recording.updateToInactive();
     console.log("successfully set recording: paused");
   } catch (e) {
     return failure({ status: false });
   }
 
-  const recordingTaskParams = {
-    TableName: process.env.recordingTaskTableName,
-    Key: {
-      userId: event.requestContext.identity.cognitoIdentityId,
-      noteId
-    },
-    UpdateExpression: "SET isActive = :isActive",
-    ExpressionAttributeValues: {
-      ":isActive": false
-    }
-  };
-
-  const recordingGetParams = {
-    TableName: process.env.recordingTableName,
-    Key: {
-      userId: event.requestContext.identity.cognitoIdentityId,
-      noteId
-    }
-  };
-
   try {
-    await dynamoDbLib.call("update", recordingTaskParams);
+    await testRun.updateToInactive();
     console.log("successfully set recording task: paused");
-    const recording = await dynamoDbLib.call("get", recordingGetParams);
-    return success(recording.Item);
+    const updatedRecording = await recording.get();
+    return success(updatedRecording.Item);
   } catch (e) {
     console.log("failed to save record", e);
     return failure({ status: false });

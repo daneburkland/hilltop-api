@@ -1,33 +1,18 @@
-import uuid from "uuid";
-import runTest from "../../utils/runTest";
-import * as dynamoDbLib from "../../libs/dynamodb-lib";
 import { success, failure } from "../../libs/response-lib";
+import Recording from "../../classes/Recording";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
-  const id = uuid.v1();
-  const { steps, puppeteerCode, location, code, cookies } = data;
 
-  const recording = {
-    userId: event.requestContext.identity.cognitoIdentityId,
-    noteId: id,
-    steps,
-    puppeteerCode: `${puppeteerCode}`,
-    location,
-    code,
-    cookies,
-    createdAt: Date.now()
-  };
+  const recording = new Recording({
+    ...data,
+    userId: event.requestContext.identity.cognitoIdentityId
+  });
 
-  const { result } = await runTest({ recording });
+  const { result } = await recording.runTest();
 
   // TODO: better way to detect failure
   if (result.data.error) return failure(result);
-
-  // TODO: make a Recording class
-  const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
-  recording.nextScheduledTest = expiration;
-  recording.isActive = true;
 
   recording.results = [
     {
@@ -38,15 +23,10 @@ export async function main(event, context) {
     }
   ];
 
-  const params = {
-    TableName: process.env.recordingTableName,
-    Item: recording
-  };
-
   try {
-    await dynamoDbLib.call("put", params);
+    await recording.create();
     console.info("FINISH");
-    return success(params.Item);
+    return success(recording);
   } catch (e) {
     console.log("failed to save record", e);
     return failure({ status: false });

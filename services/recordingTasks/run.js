@@ -1,19 +1,21 @@
 import * as dynamoDbLib from "../../libs/dynamodb-lib";
 import { success, failure } from "../../libs/response-lib";
-import runTest from "../../utils/runTest";
 import AWS from "aws-sdk";
+import Recording from "../../classes/Recording";
 
 export async function main(event, context) {
   console.log("event records:", event.Records);
   const recordingsToRun = event.Records.filter(r =>
     ["MODIFY", "INSERT"].includes(r.eventName)
   ).map(async ({ dynamodb }) => {
-    const recording = AWS.DynamoDB.Converter.unmarshall(dynamodb.NewImage);
+    const recording = Recording.from(
+      AWS.DynamoDB.Converter.unmarshall(dynamodb.NewImage)
+    );
 
-    const { result } = await runTest({ recording });
+    const { result } = await recording.runTest();
 
     // TODO: better way to detect failure
-    if (!result || !result.screenshots) return failure(result);
+    if (result.data.error) return failure(result);
 
     const params = {
       TableName: process.env.recordingTableName,
