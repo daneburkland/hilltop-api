@@ -26,11 +26,13 @@ provider:
   runtime: nodejs8.10
   stage: dev
   region: us-east-1
+  timeout: 30
 
   # These environment variables are made available to our functions
   # under process.env.
   environment:
     recordingTableName: ${self:custom.recordingTableName}
+    recordingTaskTableName: ${file(../recordingTasks/serverless.yml):custom.recordingTaskTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
@@ -49,6 +51,7 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTable, Arn]
+        - "Fn::ImportValue": ${self:custom.stage}-RecordingTaskTableArn
     - Effect: "Allow"
       Action:
         - "s3:PutObject"

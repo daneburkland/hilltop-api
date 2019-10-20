@@ -3,11 +3,12 @@ import * as dynamoDbLib from "../libs/dynamodb-lib";
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
 export default class TestRun {
-  constructor({ userId, noteId, code } = {}) {
+  constructor({ userId, noteId, code, cookies } = {}) {
     this.userId = userId;
     this.noteId = noteId;
     this.expiration = expiration;
     this.code = code;
+    this.cookies = cookies;
     this.isActive = true;
     this.createdAt = Date.now();
   }

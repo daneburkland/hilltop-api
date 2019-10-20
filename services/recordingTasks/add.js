@@ -26,7 +26,7 @@ export async function main(event, context) {
 
   try {
     await testRun.create();
-    console.log("Successfull added recording task for noteId:");
+    console.log("Successfully added recording task for noteId:");
     console.info(`noteId: ${testRun.noteId}`);
     const updatedRecording = await recording.get();
     console.log("Successfully retrieved recording:\n");

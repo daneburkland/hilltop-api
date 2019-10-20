@@ -105,11 +105,12 @@ export default class Recording {
     await dynamoDbLib.call("update", this._updateToInactiveParams());
   }
 
-  async runTest() {
+  async execute() {
     // TODO: this should only run if 'active' is set
     console.log("Starting test run:\n");
     console.info("noteId:\n", this.noteId);
     console.info("code:\n", this.code);
+    console.info("cookies:\n", this.cookies);
     let result, screenshots, resolvedScreenshots;
     const resultId = uuid.v1();
     try {
@@ -128,11 +129,12 @@ export default class Recording {
         console.log("Failed to run test");
         console.info("ERROR:\n");
         console.info(result.data.error);
-        return { result };
+        // return { result };
+      } else {
+        console.log("Successfully ran test");
+        console.info("RESULT:\n");
+        console.info(result);
       }
-      console.log("Successfully ran test");
-      console.info("RESULT:\n");
-      console.info(result);
     } catch (err) {
       console.error("Failed to run function:\n");
       console.error(err);

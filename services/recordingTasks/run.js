@@ -12,10 +12,10 @@ export async function main(event, context) {
       AWS.DynamoDB.Converter.unmarshall(dynamodb.NewImage)
     );
 
-    const { result } = await recording.runTest();
+    const { result } = await recording.execute();
 
     // TODO: better way to detect failure
-    if (result.data.error) return failure(result);
+    if (result.data.error) return failure(result.data.error);
 
     const params = {
       TableName: process.env.recordingTableName,
