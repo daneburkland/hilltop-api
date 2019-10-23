@@ -109,7 +109,8 @@ export default class Recording {
             status: result.status,
             statusText: result.statusText,
             screenshots: result.screenshots,
-            data: result.data
+            error: result.error,
+            failingStep: result.failingStep
           }
         ],
         ":empty_list": []
@@ -159,22 +160,25 @@ export default class Recording {
         data: { code: this.code, context: { cookies: this.cookies } }
       });
 
-      result = new TestRunResult();
-
       if (response.data.error) {
         console.log("Failed to run test");
         console.info("ERROR:\n");
         console.info(response.data.error);
+        result = TestRunResult.from({
+          error: response.data.error,
+          failingStep: response.data.screenshots.length
+        });
       } else {
         console.log("Successfully ran test");
         console.info("RESULT:\n");
         console.info(response);
+        result = new TestRunResult(response);
       }
     } catch (error) {
       console.error("Failed to run function:\n");
       console.error(error);
       result = TestRunResult.from({
-        data: { error }
+        error
       });
     }
 
@@ -198,7 +202,7 @@ export default class Recording {
     }
 
     try {
-      console.log("trying to Recording with new result");
+      console.log("trying to update Recording with new result");
       await this._addResult(result);
       console.log("successfuly saved");
       console.info("FINISH");
