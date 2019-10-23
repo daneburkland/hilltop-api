@@ -2,6 +2,7 @@ import * as dynamoDbLib from "../libs/dynamodb-lib";
 import { putObjectToS3 } from "../libs/s3-lib";
 import axios from "axios";
 import uuid from "uuid";
+import TestRunResult from "./TestRunResult";
 
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
@@ -88,6 +89,34 @@ export default class Recording {
     };
   }
 
+  _addResultParams(result) {
+    console.log("Add result params:\n");
+    console.log(result);
+    return {
+      TableName: process.env.recordingTableName,
+      Key: {
+        userId: this.userId,
+        noteId: this.noteId
+      },
+      UpdateExpression:
+        "SET #attrName = list_append(if_not_exists(#attrName, :empty_list), :attrValue)",
+      ExpressionAttributeNames: {
+        "#attrName": "results"
+      },
+      ExpressionAttributeValues: {
+        ":attrValue": [
+          {
+            status: result.status,
+            statusText: result.statusText,
+            screenshots: result.screenshots,
+            data: result.data
+          }
+        ],
+        ":empty_list": []
+      }
+    };
+  }
+
   async get() {
     const result = await dynamoDbLib.call("get", this._getParams());
     return result;
@@ -105,16 +134,20 @@ export default class Recording {
     await dynamoDbLib.call("update", this._updateToInactiveParams());
   }
 
+  async _addResult(result) {
+    await dynamoDbLib.call("update", this._addResultParams(result));
+  }
+
   async execute() {
     // TODO: this should only run if 'active' is set
     console.log("Starting test run:\n");
     console.info("noteId:\n", this.noteId);
     console.info("code:\n", this.code);
     console.info("cookies:\n", this.cookies);
-    let result, screenshots, resolvedScreenshots;
+    let response, result, screenshots, resolvedScreenshots;
     const resultId = uuid.v1();
     try {
-      result = await axios({
+      response = await axios({
         method: "POST",
         url: `${process.env.hilltopChromeUrl}/function`,
         mode: "no-cors",
@@ -122,26 +155,31 @@ export default class Recording {
         headers: {
           "Content-Type": "application/json"
         },
-        timeout: 15000,
+        timeout: 25000,
         data: { code: this.code, context: { cookies: this.cookies } }
       });
-      if (result.data.error) {
+
+      result = new TestRunResult();
+
+      if (response.data.error) {
         console.log("Failed to run test");
         console.info("ERROR:\n");
-        console.info(result.data.error);
-        // return { result };
+        console.info(response.data.error);
       } else {
         console.log("Successfully ran test");
         console.info("RESULT:\n");
-        console.info(result);
+        console.info(response);
       }
-    } catch (err) {
+    } catch (error) {
       console.error("Failed to run function:\n");
-      console.error(err);
-      return err;
+      console.error(error);
+      result = TestRunResult.from({
+        data: { error }
+      });
     }
+
     try {
-      screenshots = result.data.screenshots.map(({ data }, i) =>
+      screenshots = response.data.screenshots.map(({ data }, i) =>
         putObjectToS3({
           bucket: process.env.screenshotsBucket,
           key: `${this.noteId}-${resultId}-${i}`,
@@ -154,11 +192,18 @@ export default class Recording {
       console.log("Resolved screenshots:\n");
       console.info("SCREENSHOTS:\n", resolvedScreenshots);
       result.screenshots = resolvedScreenshots;
-      return { result };
     } catch (err) {
       console.error("Failed to store screenshots:\n");
       console.error(err);
-      return err;
+    }
+
+    try {
+      console.log("trying to Recording with new result");
+      await this._addResult(result);
+      console.log("successfuly saved");
+      console.info("FINISH");
+    } catch (e) {
+      console.log("failure", e);
     }
   }
 }
