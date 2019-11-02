@@ -1,5 +1,4 @@
 import * as dynamoDbLib from "../libs/dynamodb-lib";
-import { putObjectToS3 } from "../libs/s3-lib";
 import axios from "axios";
 import uuid from "uuid";
 import TestRunResult from "./TestRunResult";
@@ -7,12 +6,12 @@ import TestRunResult from "./TestRunResult";
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
 export default class Recording {
-  constructor({ steps, puppeteerCode, location, code, cookies, userId } = {}) {
+  constructor({ steps, location, code, debugCode, cookies, userId } = {}) {
     this.noteId = uuid.v1();
     this.steps = steps;
-    this.puppeteerCode = puppeteerCode;
     this.location = location;
     this.code = code;
+    this.debugCode = debugCode;
     this.cookies = cookies;
     this.createdAt = Date.now();
     this.isActive = true;
@@ -104,15 +103,7 @@ export default class Recording {
         "#attrName": "results"
       },
       ExpressionAttributeValues: {
-        ":attrValue": [
-          {
-            status: result.status,
-            statusText: result.statusText,
-            screenshots: result.screenshots,
-            error: result.error,
-            failingStep: result.failingStep
-          }
-        ],
+        ":attrValue": [result],
         ":empty_list": []
       }
     };
@@ -142,13 +133,12 @@ export default class Recording {
   async execute() {
     // TODO: this should only run if 'active' is set
     console.log("Starting test run:\n");
-    console.info("noteId:\n", this.noteId);
+    console.info("recording:\n", this);
     console.info("code:\n", this.code);
     console.info("cookies:\n", this.cookies);
-    let response, result, screenshots, resolvedScreenshots;
-    const resultId = uuid.v1();
+    let result;
     try {
-      response = await axios({
+      const response = await axios({
         method: "POST",
         url: `${process.env.hilltopChromeUrl}/function`,
         mode: "no-cors",
@@ -159,46 +149,14 @@ export default class Recording {
         timeout: 25000,
         data: { code: this.code, context: { cookies: this.cookies } }
       });
-
-      if (response.data.error) {
-        console.log("Failed to run test");
-        console.info("ERROR:\n");
-        console.info(response.data.error);
-        result = TestRunResult.from({
-          error: response.data.error,
-          failingStep: response.data.screenshots.length
-        });
-      } else {
-        console.log("Successfully ran test");
-        console.info("RESULT:\n");
-        console.info(response);
-        result = new TestRunResult(response);
-      }
+      result = await TestRunResult.build(response);
+      console.log("result", result);
     } catch (error) {
       console.error("Failed to run function:\n");
       console.error(error);
       result = TestRunResult.from({
-        error
+        data: { error }
       });
-    }
-
-    try {
-      screenshots = response.data.screenshots.map(({ data }, i) =>
-        putObjectToS3({
-          bucket: process.env.screenshotsBucket,
-          key: `${this.noteId}-${resultId}-${i}`,
-          data
-        })
-      );
-
-      console.log("Starting to store screenshots:\n");
-      resolvedScreenshots = await Promise.all(screenshots);
-      console.log("Resolved screenshots:\n");
-      console.info("SCREENSHOTS:\n", resolvedScreenshots);
-      result.screenshots = resolvedScreenshots;
-    } catch (err) {
-      console.error("Failed to store screenshots:\n");
-      console.error(err);
     }
 
     try {
