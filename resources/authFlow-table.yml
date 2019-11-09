@@ -1,0 +1,27 @@
+Resources:
+  AuthFlowTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.authFlowTableName}
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: origin
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: origin
+          KeyType: RANGE
+
+      # Set the capacity to auto-scale
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  AuthFlowTableArn:
+    Value:
+      Fn::GetAtt:
+        - AuthFlowTable
+        - Arn
+    Export:
+      Name: ${self:custom.stage}-AuthFlowTableArn
