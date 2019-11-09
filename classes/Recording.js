@@ -118,13 +118,13 @@ export default class Recording {
     };
   }
 
-  _fetchLatestAuthFlowParams({ userId, origin }) {
+  _fetchLatestAuthFlowParams() {
     return {
       TableName: process.env.authFlowTableName,
       KeyConditionExpression: "userId = :userId and origin = :origin",
       ExpressionAttributeValues: {
-        ":userId": userId,
-        ":origin": origin
+        ":userId": this.userId,
+        ":origin": this.location.origin
       }
     };
   }
@@ -136,9 +136,11 @@ export default class Recording {
         userId: this.userId,
         origin: this.location.origin
       },
-      UpdateExpression: "SET authedCookies = :authedCookies",
+      UpdateExpression:
+        "SET authedCookies = :authedCookies, SET noteId = :noteId",
       ExpressionAttributeValues: {
-        ":authedCookies": authedCookies
+        ":authedCookies": authedCookies,
+        ":noteId": this.noteId
       }
     };
   }
@@ -164,15 +166,43 @@ export default class Recording {
     await dynamoDbLib.call("update", this._addResultParams(result));
   }
 
-  async _fetchLatestAuthFlow({ userId, origin }) {
-    await dynamoDbLib.call(
+  async _fetchLatestAuthFlow() {
+    console.log("fetching latest auth flow");
+    const authFlow = await dynamoDbLib.call(
       "get",
-      this._fetchLatestAuthFlowParams({ userId, origin })
+      this._fetchLatestAuthFlowParams()
     );
+    console.log("successfully fetched latest auth flow:", authFlow);
+    return authFlow;
   }
 
   async _updateAuthFlow(result) {
     await dynamoDbLib.call("update", this._updateAuthFlowParams(result));
+  }
+
+  async _updateCookies() {
+    const authFlow = await this._fetchLatestAuthFlow();
+    if (!authFlow) return;
+    let authFlowRecording;
+    console.log("getting authFlowRecording");
+    try {
+      authFlowRecording = await Recording.from({
+        userId: authFlow.userId,
+        noteId: authFlow.noteId
+      }).get();
+      console.log("successfully fetched authFlowRecording:", authFlowRecording);
+    } catch (e) {
+      console.log("error fetching authFlowRecording", e);
+    }
+
+    console.log("executing authFlowRecording");
+    try {
+      await authFlowRecording.execute();
+    } catch (e) {
+      console.log("failed to execute authFlowRecording", e);
+    }
+
+    this.authedCookies = authFlowRecording.authedCookies;
   }
 
   async execute() {
@@ -181,6 +211,11 @@ export default class Recording {
     console.info("recording:\n", this);
     console.info("code:\n", this.code);
     console.info("cookies:\n", this.cookies);
+
+    await this._updateCookies();
+    console.log(
+      `will use cookies: ${this.authedCookies ? "authedCookies" : "cookies"}`
+    );
 
     let result;
     try {
@@ -193,7 +228,10 @@ export default class Recording {
           "Content-Type": "application/json"
         },
         timeout: 25000,
-        data: { code: this.code, context: { cookies: this.cookies } }
+        data: {
+          code: this.code,
+          context: { cookies: this.authedCookies || this.cookies }
+        }
       });
       result = await TestRunResult.build(response);
       console.log("result", result);
@@ -210,6 +248,9 @@ export default class Recording {
         console.log("trying to update auth flow");
         await this._updateAuthFlow(result);
         console.log("successfully updated auth flow");
+
+        console.log("adding authedCookies to auth flow recording");
+        this.authedCookies = result.authedCookies;
       } catch (e) {
         console.log("failed to update auth flow", e);
       }
