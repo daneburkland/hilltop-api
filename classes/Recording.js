@@ -6,7 +6,15 @@ import TestRunResult from "./TestRunResult";
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
 export default class Recording {
-  constructor({ steps, location, code, debugCode, cookies, userId } = {}) {
+  constructor({
+    steps,
+    location,
+    code,
+    debugCode,
+    cookies,
+    userId,
+    isAuthFlow
+  } = {}) {
     this.noteId = uuid.v1();
     this.steps = steps;
     this.location = location;
@@ -18,6 +26,7 @@ export default class Recording {
     this.nextScheduledTest = expiration;
     this.userId = userId;
     this.results = [];
+    this.isAuthFlow = isAuthFlow;
   }
 
   static from(json) {
@@ -109,6 +118,31 @@ export default class Recording {
     };
   }
 
+  _fetchLatestAuthFlowParams({ userId, origin }) {
+    return {
+      TableName: process.env.authFlowTableName,
+      KeyConditionExpression: "userId = :userId and origin = :origin",
+      ExpressionAttributeValues: {
+        ":userId": userId,
+        ":origin": origin
+      }
+    };
+  }
+
+  _updateAuthFlowParams({ authedCookies }) {
+    return {
+      TableName: process.env.authFlowTableName,
+      Key: {
+        userId: this.userId,
+        origin: this.location.origin
+      },
+      UpdateExpression: "SET authedCookies = :authedCookies",
+      ExpressionAttributeValues: {
+        ":authedCookies": authedCookies
+      }
+    };
+  }
+
   async get() {
     const result = await dynamoDbLib.call("get", this._getParams());
     return result;
@@ -130,12 +164,24 @@ export default class Recording {
     await dynamoDbLib.call("update", this._addResultParams(result));
   }
 
+  async _fetchLatestAuthFlow({ userId, origin }) {
+    await dynamoDbLib.call(
+      "get",
+      this._fetchLatestAuthFlowParams({ userId, origin })
+    );
+  }
+
+  async _updateAuthFlow(result) {
+    await dynamoDbLib.call("update", this._updateAuthFlowParams(result));
+  }
+
   async execute() {
     // TODO: this should only run if 'active' is set
     console.log("Starting test run:\n");
     console.info("recording:\n", this);
     console.info("code:\n", this.code);
     console.info("cookies:\n", this.cookies);
+
     let result;
     try {
       const response = await axios({
@@ -155,8 +201,18 @@ export default class Recording {
       console.error("Failed to run function:\n");
       console.error(error);
       result = TestRunResult.from({
-        data: { error }
+        data: { error: error.data }
       });
+    }
+
+    if (!!this.isAuthFlow && !result.error) {
+      try {
+        console.log("trying to update auth flow");
+        await this._updateAuthFlow(result);
+        console.log("successfully updated auth flow");
+      } catch (e) {
+        console.log("failed to update auth flow", e);
+      }
     }
 
     try {

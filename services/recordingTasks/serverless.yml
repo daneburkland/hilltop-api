@@ -14,6 +14,7 @@ custom:
   stage: ${opt:stage, self:provider.stage}
   # Set the table name here so we can use it while testing locally
   recordingTaskTableName: ${self:custom.stage}-recordingTasks
+  authFlowTableName: ${self:custom.stage}-authFlows
   environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
   screenshotsBucketArn:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
@@ -31,6 +32,7 @@ provider:
   # under process.env.
   environment:
     recordingTaskTableName: ${self:custom.recordingTaskTableName}
+    authFlowTableName: ${self:custom.authFlowTableName}
     recordingTableName: ${file(../notes/serverless.yml):custom.recordingTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
@@ -54,6 +56,7 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTaskTable, Arn]
+        - "Fn::GetAtt": [AuthFlowTable, Arn]
         - "Fn::ImportValue": ${self:custom.stage}-RecordingTableArn
     - Effect: "Allow"
       Action:
@@ -108,6 +111,7 @@ functions:
 resources:
   # DynamoDB
   - ${file(../../resources/recording-task-table.yml)}
+  - ${file(../../resources/authFlow-table.yml)}
   - Outputs:
       ApiGatewayRestApiId:
         Value:

@@ -11,6 +11,7 @@ export async function main(event, context) {
     );
 
     try {
+      // TODO: why is this on recording? this is a TestRun
       await recording.execute();
     } catch (error) {
       console.error("Failed to execute Recording:\n");

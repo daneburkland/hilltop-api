@@ -50,6 +50,7 @@ export default class TestRunResult {
 
     this.error = resolvedParams.error;
     this.stepResults = resolvedParams.stepResults;
+    this.authedCookies = resolvedParams.authedCookies;
   }
 
   static async build({ data }) {
@@ -65,6 +66,7 @@ export default class TestRunResult {
     );
     return new TestRunResult({
       error: data.error,
+      authedCookies: data.authedCookies,
       stepResults: resolvedStepResults
     });
   }
