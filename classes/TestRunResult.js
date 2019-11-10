@@ -1,5 +1,11 @@
 import { putObjectToS3 } from "../libs/s3-lib";
 import uuid from "uuid";
+import { debug } from "../utils";
+
+const testRunResultDebug = debug("TestRunResult");
+testRunResultDebug.enabled = true;
+const stepResultDebug = debug("StepResult");
+stepResultDebug.enabled = true;
 
 class StepResult {
   constructor(resolvedParams) {
@@ -17,6 +23,7 @@ class StepResult {
     { isOk, pageScreenshot, elementScreenshot, id } = {},
     resultId
   ) {
+    stepResultDebug(`#build`);
     const resolvedPageScreenshot =
       pageScreenshot &&
       (await putObjectToS3({
@@ -54,6 +61,7 @@ export default class TestRunResult {
   }
 
   static async build({ data }) {
+    testRunResultDebug(`#build: %o`, data);
     const id = uuid.v1();
     const resolvedStepResults = {};
     await Promise.all(
@@ -72,6 +80,7 @@ export default class TestRunResult {
   }
 
   static async from(json) {
+    testRunResultDebug(`#from: %o`, json);
     return Object.assign(new TestRunResult(), json);
   }
 }

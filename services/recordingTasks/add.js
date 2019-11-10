@@ -16,8 +16,6 @@ export async function main(event, context) {
 
   try {
     await recording.updateToActive();
-    console.log("Sucessfully updated recording:\n");
-    console.info(`noteId: ${recording.noteId}`);
   } catch (e) {
     console.error("Failed to update recording:\n");
     console.error(e);
@@ -26,11 +24,7 @@ export async function main(event, context) {
 
   try {
     await testRun.create();
-    console.log("Successfully added recording task for noteId:");
-    console.info(`noteId: ${testRun.noteId}`);
     const updatedRecording = await recording.get();
-    console.log("Successfully retrieved recording:\n");
-    console.info(`noteId: ${updatedRecording.noteId}`);
     return success(updatedRecording.Item);
   } catch (e) {
     console.log("failed to save record", e);

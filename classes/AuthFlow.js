@@ -1,4 +1,8 @@
 import * as dynamoDbLib from "../libs/dynamodb-lib";
+import { debug } from "../utils";
+
+const authFlowDebug = debug("AuthFlow");
+authFlowDebug.enabled = true;
 
 export default class AuthFlow {
   constructor({ userId, noteId, origin, authedCookies } = {}) {
@@ -9,15 +13,17 @@ export default class AuthFlow {
   }
 
   static from(json) {
+    authFlowDebug(`#from: %o`, json);
     return Object.assign(new AuthFlow(), json);
   }
 
   static async get(json) {
+    authFlowDebug(`#get: %o`, json);
     return await AuthFlow.from(json).get();
   }
 
   _getParams() {
-    console.log("latestAuthFlowParams:", this.userId, this.origin);
+    authFlowDebug(`#_getParams`);
     return {
       TableName: process.env.authFlowTableName,
       Key: {
@@ -28,6 +34,7 @@ export default class AuthFlow {
   }
 
   _updateParams() {
+    authFlowDebug(`#_updateParams`);
     return {
       TableName: process.env.authFlowTableName,
       Key: {
@@ -43,13 +50,13 @@ export default class AuthFlow {
   }
 
   async update() {
+    authFlowDebug(`#update`);
     await dynamoDbLib.call("update", this._updateParams());
   }
 
   async get() {
-    console.log("fetching latest auth flow");
+    authFlowDebug(`#get`);
     const { Item } = await dynamoDbLib.call("get", this._getParams());
-    console.log("successfully fetched latest auth flow:", Item);
     return Item;
   }
 }

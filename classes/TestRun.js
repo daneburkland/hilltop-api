@@ -1,4 +1,8 @@
 import * as dynamoDbLib from "../libs/dynamodb-lib";
+import { debug } from "../utils";
+
+const testRunDebug = debug("TestRun");
+testRunDebug.enabled = true;
 
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
@@ -16,10 +20,12 @@ export default class TestRun {
   }
 
   static from(json) {
+    testRunDebug(`#from: %o`, json);
     return Object.assign(new TestRun(), json);
   }
 
   _updateToInactiveParams() {
+    testRunDebug(`#_updateToInactiveParams`);
     return {
       TableName: process.env.recordingTaskTableName,
       Key: {
@@ -34,17 +40,36 @@ export default class TestRun {
   }
 
   _createParams() {
+    testRunDebug(`#_createParams`);
     return {
       TableName: process.env.recordingTaskTableName,
       Item: this
     };
   }
 
+  _reinsertParams() {
+    testRunDebug(`#_reinsertParams`);
+    return {
+      TableName: process.env.recordingTaskTableName,
+      Item: {
+        ...this,
+        expiration
+      }
+    };
+  }
+
+  async reinsert() {
+    testRunDebug(`#reinsert`);
+    await dynamoDbLib.call("put", this._reinsertParams());
+  }
+
   async updateToInactive() {
+    testRunDebug(`#updateToInactive`);
     await dynamoDbLib.call("update", this._updateToInactiveParams());
   }
 
   async create() {
+    testRunDebug(`#create`);
     await dynamoDbLib.call("put", this._createParams());
   }
 }

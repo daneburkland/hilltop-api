@@ -13,14 +13,12 @@ export async function main(event, context) {
 
   try {
     await recording.updateToInactive();
-    console.log("successfully set recording: paused");
   } catch (e) {
     return failure({ status: false });
   }
 
   try {
     await testRun.updateToInactive();
-    console.log("successfully set recording task: paused");
     const updatedRecording = await recording.get();
     return success(updatedRecording.Item);
   } catch (e) {

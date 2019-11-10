@@ -3,8 +3,6 @@ import { success, failure } from "../../libs/response-lib";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
-  console.log("Updating user settings with:\n");
-  console.info(data);
   const params = {
     TableName: process.env.userSettingsTableName,
     Key: {

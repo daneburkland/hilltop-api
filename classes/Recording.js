@@ -3,6 +3,10 @@ import axios from "axios";
 import uuid from "uuid";
 import TestRunResult from "./TestRunResult";
 import AuthFlow from "./AuthFlow";
+import { debug } from "../utils";
+
+const recordingDebug = debug("Recording");
+recordingDebug.enabled = true;
 
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
@@ -22,6 +26,7 @@ export default class Recording {
     this.code = code;
     this.debugCode = debugCode;
     this.cookies = cookies;
+    this.authedCookies = null;
     this.createdAt = Date.now();
     this.isActive = true;
     this.nextScheduledTest = expiration;
@@ -31,10 +36,12 @@ export default class Recording {
   }
 
   static from(json) {
+    recordingDebug(`#from: %o`, json);
     return Object.assign(new Recording(), json);
   }
 
   static async query({ userId }) {
+    recordingDebug(`#query: %o`, userId);
     const params = {
       TableName: process.env.recordingTableName,
       KeyConditionExpression: "userId = :userId",
@@ -48,6 +55,7 @@ export default class Recording {
   }
 
   _getParams() {
+    recordingDebug(`#_getParams`);
     return {
       TableName: process.env.recordingTableName,
       Key: {
@@ -58,8 +66,7 @@ export default class Recording {
   }
 
   _createParams() {
-    console.log("In Recording:");
-    console.log(this);
+    recordingDebug(`#_createParams`);
     return {
       TableName: process.env.recordingTableName,
       Item: this
@@ -67,6 +74,7 @@ export default class Recording {
   }
 
   _updateToActiveParams() {
+    recordingDebug(`#_updateToActiveParams`);
     return {
       TableName: process.env.recordingTableName,
       Key: {
@@ -77,12 +85,13 @@ export default class Recording {
         "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
       ExpressionAttributeValues: {
         ":isActive": true,
-        ":nextScheduledTest": this.expiration
+        ":nextScheduledTest": this.nextScheduledTest
       }
     };
   }
 
   _updateToInactiveParams() {
+    recordingDebug(`#_updateToInactiveParams`);
     return {
       TableName: process.env.recordingTableName,
       Key: {
@@ -99,8 +108,7 @@ export default class Recording {
   }
 
   _addResultParams(result) {
-    console.log("Add result params:\n");
-    console.log(result);
+    recordingDebug(`#_addResultParams: %o`, result);
     return {
       TableName: process.env.recordingTableName,
       Key: {
@@ -119,28 +127,54 @@ export default class Recording {
     };
   }
 
+  _updateNextScheduledTestParams() {
+    recordingDebug(`#updateNextScheduledTestParams`);
+    return {
+      TableName: process.env.recordingTableName,
+      Key: {
+        userId: this.userId,
+        noteId: this.noteId
+      },
+      UpdateExpression: "SET nextScheduledTest = :nextScheduledTest",
+      ExpressionAttributeValues: {
+        ":nextScheduledTest": this.nextScheduledTest
+      }
+    };
+  }
+
+  async updateNextScheduledTest() {
+    recordingDebug(`#updateNextScheduledTest`);
+    await dynamoDbLib.call("update", this._updateNextScheduledTestParams());
+  }
+
   async get() {
+    recordingDebug(`#get`);
     const result = await dynamoDbLib.call("get", this._getParams());
     return result;
   }
 
   async create() {
+    recordingDebug(`#create`);
     await dynamoDbLib.call("put", this._createParams());
   }
 
   async updateToActive() {
+    recordingDebug(`#updateToActive`);
     await dynamoDbLib.call("update", this._updateToActiveParams());
   }
 
   async updateToInactive() {
+    recordingDebug(`#updateToInactive`);
     await dynamoDbLib.call("update", this._updateToInactiveParams());
   }
 
   async _addResult(result) {
+    recordingDebug(`#_addResult: %o`, result);
     await dynamoDbLib.call("update", this._addResultParams(result));
   }
 
   async _updateAuthFlow({ authedCookies }) {
+    recordingDebug(`#_updateAuthFlow`);
     const authFlow = AuthFlow.from({
       userId: this.userId,
       origin: this.location.origin,
@@ -151,31 +185,26 @@ export default class Recording {
   }
 
   async _updateCookies() {
+    recordingDebug(`#_updateCookies`);
     const authFlow = await AuthFlow.get({
       userId: this.userId,
       noteId: this.noteId,
       origin: this.location.origin
     });
-    console.log("authFlow", authFlow);
     if (!authFlow) return;
     let authFlowRecording;
-    console.log("getting authFlowRecording");
     try {
       const result = await Recording.from({
         userId: authFlow.userId,
         noteId: authFlow.noteId
       }).get();
-      console.log(result);
       authFlowRecording = Recording.from(result.Item);
-      console.log("successfully fetched authFlowRecording:", authFlowRecording);
     } catch (e) {
       console.log("error fetching authFlowRecording", e);
     }
 
-    console.log("executing authFlowRecording");
     try {
       await authFlowRecording.execute();
-      console.log("successfully executed authFlowRecording");
     } catch (e) {
       console.log("failed to execute authFlowRecording", e);
     }
@@ -184,18 +213,12 @@ export default class Recording {
   }
 
   async execute() {
+    recordingDebug(`#execute: %o`, this);
     // TODO: this should only run if 'active' is set
-    console.log("Starting test run:\n");
-    console.info("recording:\n", this);
-    console.info("code:\n", this.code);
-    console.info("cookies:\n", this.cookies);
 
     if (!this.isAuthFlow) {
       await this._updateCookies();
     }
-    console.log(
-      `will use cookies: ${this.authedCookies ? "authedCookies" : "cookies"}`
-    );
 
     let result;
     try {
@@ -214,7 +237,6 @@ export default class Recording {
         }
       });
       result = await TestRunResult.build(response);
-      console.log("result", result);
     } catch (error) {
       console.error("Failed to run function:\n");
       console.error(error);
@@ -225,11 +247,7 @@ export default class Recording {
 
     if (!!this.isAuthFlow && !result.error) {
       try {
-        console.log("trying to update auth flow");
         await this._updateAuthFlow(result);
-        console.log("successfully updated auth flow");
-
-        console.log("adding authedCookies to auth flow recording");
         this.authedCookies = result.authedCookies;
       } catch (e) {
         console.log("failed to update auth flow", e);
@@ -237,10 +255,7 @@ export default class Recording {
     }
 
     try {
-      console.log("trying to update Recording with new result");
       await this._addResult(result);
-      console.log("successfuly saved");
-      console.info("FINISH");
     } catch (e) {
       console.log("failure", e);
     }

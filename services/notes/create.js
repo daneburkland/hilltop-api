@@ -18,8 +18,6 @@ export async function main(event, context) {
 
   try {
     await testRun.create();
-    console.log("Successfully added recording task for noteId:\n");
-    console.info(`noteId: ${testRun.noteId}`);
   } catch (e) {
     console.error("Failed to add recording task:\n");
     console.error(e);
@@ -27,8 +25,6 @@ export async function main(event, context) {
 
   try {
     await recording.create();
-    console.log("Successfully created recording:\n");
-    console.info("FINISH");
     return success(recording);
   } catch (e) {
     console.log("failed to save record", e);
