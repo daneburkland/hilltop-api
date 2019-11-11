@@ -1,15 +1,18 @@
 import { success, failure } from "../../libs/response-lib";
 import Recording from "../../classes/Recording";
 import TestRun from "../../classes/TestRun";
+import User from "../../classes/User";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
-  console.log(event);
-  const { noteId } = data;
-  const userId = event.requestContext.identity.cognitoIdentityId;
+  const { recordingId } = data;
+  const {
+    cognitoAuthenticationProvider: authProvider
+  } = event.requestContext.identity;
+  const user = await User.fetchFromAuthProvider(authProvider);
 
-  const recording = Recording.from({ userId, noteId });
-  const testRun = TestRun.from({ userId, noteId });
+  const recording = Recording.from({ teamId: user.teamId, recordingId });
+  const testRun = TestRun.from({ teamId: user.teamId, recordingId });
 
   try {
     await recording.updateToInactive();

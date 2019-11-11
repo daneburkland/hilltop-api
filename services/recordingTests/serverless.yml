@@ -1,4 +1,4 @@
-service: hilltop-recordingRunner
+service: hilltop-recordingTest-api
 
 # Create an optimized package for our functions
 package:
@@ -13,7 +13,7 @@ custom:
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
   # Set the table name here so we can use it while testing locally
-  recordingTaskTableName: ${self:custom.stage}-recordingTasks
+  recordingTestTableName: ${self:custom.stage}-recordingTests
   authFlowTableName: ${self:custom.stage}-authFlows
   environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
   screenshotsBucketArn:
@@ -31,9 +31,9 @@ provider:
   # These environment variables are made available to our functions
   # under process.env.
   environment:
-    recordingTaskTableName: ${self:custom.recordingTaskTableName}
+    recordingTestTableName: ${self:custom.recordingTestTableName}
     authFlowTableName: ${self:custom.authFlowTableName}
-    recordingTableName: ${file(../notes/serverless.yml):custom.recordingTableName}
+    recordingTableName: ${file(../recordings/serverless.yml):custom.recordingTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
@@ -55,7 +55,7 @@ provider:
       # Restrict our IAM role permissions to
       # the specific table for the stage
       Resource:
-        - "Fn::GetAtt": [RecordingTaskTable, Arn]
+        - "Fn::GetAtt": [RecordingTestTable, Arn]
         - "Fn::GetAtt": [AuthFlowTable, Arn]
         - "Fn::ImportValue": ${self:custom.stage}-RecordingTableArn
     - Effect: "Allow"
@@ -70,12 +70,6 @@ provider:
             - "/*"
 
 functions:
-  # Defines an HTTP API endpoint that calls the main function in create.js
-  # - path: url path is /notes
-  # - method: POST request
-  # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
-  #     domain api call
-  # - authorizer: authenticate using the AWS IAM role
   add:
     handler: add.main
     events:
@@ -98,19 +92,19 @@ functions:
       - stream:
           type: dynamodb
           arn:
-            Fn::GetAtt: [RecordingTaskTable, StreamArn]
+            Fn::GetAtt: [RecordingTestTable, StreamArn]
   reinsert:
     handler: reinsert.main
     events:
       - stream:
           type: dynamodb
           arn:
-            Fn::GetAtt: [RecordingTaskTable, StreamArn]
+            Fn::GetAtt: [RecordingTestTable, StreamArn]
 
 # Create our resources with separate CloudFormation templates
 resources:
   # DynamoDB
-  - ${file(../../resources/recording-task-table.yml)}
+  - ${file(../../resources/recording-test-table.yml)}
   - ${file(../../resources/authFlow-table.yml)}
   - Outputs:
       ApiGatewayRestApiId:

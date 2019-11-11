@@ -23,7 +23,7 @@ describe("constructor", () => {
     isAuthFlow: false,
 
     // shouldn't construct with:
-    noteId: undefined,
+    recordingId: undefined,
     createdAt: undefined,
     results: undefined,
     nextScheduledTest: undefined
@@ -45,7 +45,7 @@ describe("constructor", () => {
   });
 
   test("doesn't set user supplied values for automatically set properties", () => {
-    expect(recording.noteId).toBeDefined();
+    expect(recording.recordingId).toBeDefined();
     expect(recording.createdAt).toBeDefined();
     expect(recording.results).toBeDefined();
     expect(recording.nextScheduledTest).toBeDefined();
@@ -56,7 +56,7 @@ describe("#from", () => {
   const date = new Date();
   date.setDate(date.getDate() - 1);
   const json = {
-    noteId: uuid.v1(),
+    recordingId: uuid.v1(),
     userId: uuid.v1(),
     results: ["foo", "bar"],
     createdAt: date,
@@ -80,7 +80,7 @@ describe("#from", () => {
       isAuthFlow: undefined,
       location: undefined,
       nextScheduledTest: json.nextScheduledTest,
-      noteId: json.noteId,
+      recordingId: json.recordingId,
       results: json.results,
       steps: undefined,
       userId: json.userId
@@ -90,7 +90,7 @@ describe("#from", () => {
 
 describe("#updateNextScheduledTest", () => {
   const json = {
-    noteId: uuid.v1(),
+    recordingId: uuid.v1(),
     userId: uuid.v1()
   };
   const recording = new Recording(json);
@@ -102,7 +102,7 @@ describe("#updateNextScheduledTest", () => {
         ":nextScheduledTest": recording.nextScheduledTest
       },
       Key: {
-        noteId: recording.noteId,
+        recordingId: recording.recordingId,
         userId: recording.userId
       },
       TableName: undefined,
@@ -128,7 +128,7 @@ describe("#get", () => {
   recording.get();
   expect(dynamoDbLib.call).toHaveBeenCalledWith("get", {
     Key: {
-      noteId: recording.noteId,
+      recordingId: recording.recordingId,
       userId: recording.userId
     },
     TableName: undefined

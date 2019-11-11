@@ -5,9 +5,10 @@ const authFlowDebug = debug("AuthFlow");
 authFlowDebug.enabled = true;
 
 export default class AuthFlow {
-  constructor({ userId, noteId, origin, authedCookies } = {}) {
-    this.userId = userId;
-    this.noteId = noteId;
+  constructor({ teamId, ownerId, recordingId, origin, authedCookies } = {}) {
+    this.ownerId = ownerId;
+    this.teamId = teamId;
+    this.recordingId = recordingId;
     this.origin = origin;
     this.authedCookies = authedCookies;
   }
@@ -27,7 +28,7 @@ export default class AuthFlow {
     return {
       TableName: process.env.authFlowTableName,
       Key: {
-        userId: this.userId,
+        teamId: this.teamId,
         origin: this.origin
       }
     };
@@ -38,13 +39,14 @@ export default class AuthFlow {
     return {
       TableName: process.env.authFlowTableName,
       Key: {
-        userId: this.userId,
+        teamId: this.teamId,
         origin: this.origin
       },
-      UpdateExpression: "SET authedCookies = :authedCookies, noteId = :noteId",
+      UpdateExpression:
+        "SET authedCookies = :authedCookies, recordingId = :recordingId",
       ExpressionAttributeValues: {
         ":authedCookies": this.authedCookies,
-        ":noteId": this.noteId
+        ":recordingId": this.recordingId
       }
     };
   }

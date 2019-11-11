@@ -4,14 +4,14 @@ Resources:
     Properties:
       TableName: ${self:custom.recordingTableName}
       AttributeDefinitions:
-        - AttributeName: userId
+        - AttributeName: teamId
           AttributeType: S
-        - AttributeName: noteId
+        - AttributeName: recordingId
           AttributeType: S
       KeySchema:
-        - AttributeName: userId
+        - AttributeName: teamId
           KeyType: HASH
-        - AttributeName: noteId
+        - AttributeName: recordingId
           KeyType: RANGE
 
       # Set the capacity to auto-scale

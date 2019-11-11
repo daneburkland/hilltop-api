@@ -17,11 +17,11 @@ export default class Recording {
     code,
     debugCode,
     cookies,
-    userId,
+    ownerId,
     teamId,
     isAuthFlow
   } = {}) {
-    this.noteId = uuid.v1();
+    this.recordingId = uuid.v1();
     this.steps = steps;
     this.location = location;
     this.code = code;
@@ -31,7 +31,7 @@ export default class Recording {
     this.createdAt = Date.now();
     this.isActive = true;
     this.nextScheduledTest = expiration;
-    this.userId = userId;
+    this.ownerId = ownerId;
     this.teamId = teamId;
     this.results = [];
     this.isAuthFlow = isAuthFlow;
@@ -42,13 +42,13 @@ export default class Recording {
     return Object.assign(new Recording(), json);
   }
 
-  static async query({ userId }) {
-    recordingDebug(`#query: %o`, userId);
+  static async query({ teamId }) {
+    recordingDebug(`#query: %o`, teamId);
     const params = {
       TableName: process.env.recordingTableName,
-      KeyConditionExpression: "userId = :userId",
+      KeyConditionExpression: "teamId = :teamId",
       ExpressionAttributeValues: {
-        ":userId": userId
+        ":teamId": teamId
       }
     };
 
@@ -61,8 +61,8 @@ export default class Recording {
     return {
       TableName: process.env.recordingTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        teamId: this.teamId,
+        recordingId: this.recordingId
       }
     };
   }
@@ -80,8 +80,8 @@ export default class Recording {
     return {
       TableName: process.env.recordingTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        teamId: this.teamId,
+        recordingId: this.recordingId
       },
       UpdateExpression:
         "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
@@ -97,8 +97,8 @@ export default class Recording {
     return {
       TableName: process.env.recordingTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        teamId: this.teamId,
+        recordingId: this.recordingId
       },
       UpdateExpression:
         "SET isActive = :isActive, nextScheduledTest = :nextScheduledTest",
@@ -114,8 +114,8 @@ export default class Recording {
     return {
       TableName: process.env.recordingTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        teamId: this.teamId,
+        recordingId: this.recordingId
       },
       UpdateExpression:
         "SET #attrName = list_append(if_not_exists(#attrName, :empty_list), :attrValue)",
@@ -134,8 +134,8 @@ export default class Recording {
     return {
       TableName: process.env.recordingTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        ownerId: this.ownerId,
+        recordingId: this.recordingId
       },
       UpdateExpression: "SET nextScheduledTest = :nextScheduledTest",
       ExpressionAttributeValues: {
@@ -178,10 +178,11 @@ export default class Recording {
   async _updateAuthFlow({ authedCookies }) {
     recordingDebug(`#_updateAuthFlow`);
     const authFlow = AuthFlow.from({
-      userId: this.userId,
+      ownerId: this.ownerId,
+      teamId: this.teamId,
       origin: this.location.origin,
       authedCookies: authedCookies,
-      noteId: this.noteId
+      recordingId: this.recordingId
     });
     await authFlow.update();
   }
@@ -189,16 +190,17 @@ export default class Recording {
   async _updateCookies() {
     recordingDebug(`#_updateCookies`);
     const authFlow = await AuthFlow.get({
-      userId: this.userId,
-      noteId: this.noteId,
+      ownerId: this.ownerId,
+      teamId: this.teamId,
+      recordingId: this.recordingId,
       origin: this.location.origin
     });
     if (!authFlow) return;
     let authFlowRecording;
     try {
       const result = await Recording.from({
-        userId: authFlow.userId,
-        noteId: authFlow.noteId
+        teamId: authFlow.teamId,
+        recordingId: authFlow.recordingId
       }).get();
       authFlowRecording = Recording.from(result.Item);
     } catch (e) {

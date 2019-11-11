@@ -1,11 +1,16 @@
 import * as dynamoDbLib from "../../libs/dynamodb-lib";
 import { success, failure } from "../../libs/response-lib";
+import User from "../../classes/User";
 
 export async function main(event) {
+  const {
+    cognitoAuthenticationProvider: authProvider
+  } = event.requestContext.identity;
+  const user = await User.fetchFromAuthProvider(authProvider);
   const params = {
     TableName: process.env.userSettingsTableName,
     Key: {
-      userId: event.requestContext.identity.cognitoIdentityId
+      teamId: user.teamId
     }
   };
 

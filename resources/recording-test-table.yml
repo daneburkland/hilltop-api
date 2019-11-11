@@ -1,32 +1,32 @@
 Resources:
-  RecordingTaskTable:
+  RecordingTestTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: ${self:custom.recordingTaskTableName}
+      TableName: ${self:custom.recordingTestTableName}
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TimeToLiveSpecification:
         AttributeName: expiration
         Enabled: true
       AttributeDefinitions:
-        - AttributeName: userId
+        - AttributeName: teamId
           AttributeType: S
-        - AttributeName: noteId
+        - AttributeName: recordingId
           AttributeType: S
       KeySchema:
-        - AttributeName: userId
+        - AttributeName: teamId
           KeyType: HASH
-        - AttributeName: noteId
+        - AttributeName: recordingId
           KeyType: RANGE
 
       # Set the capacity to auto-scale
       BillingMode: PAY_PER_REQUEST
 
 Outputs:
-  RecordingTaskTableArn:
+  RecordingTestTableArn:
     Value:
       Fn::GetAtt:
-        - RecordingTaskTable
+        - RecordingTestTable
         - Arn
     Export:
-      Name: ${self:custom.stage}-RecordingTaskTableArn
+      Name: ${self:custom.stage}-RecordingTestTableArn

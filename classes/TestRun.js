@@ -7,9 +7,18 @@ testRunDebug.enabled = true;
 const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 8;
 
 export default class TestRun {
-  constructor({ userId, noteId, code, cookies, isAuthFlow, location } = {}) {
-    this.userId = userId;
-    this.noteId = noteId;
+  constructor({
+    ownerId,
+    teamId,
+    recordingId,
+    code,
+    cookies,
+    isAuthFlow,
+    location
+  } = {}) {
+    this.ownerId = ownerId;
+    this.teamId = teamId;
+    this.recordingId = recordingId;
     this.expiration = expiration;
     this.code = code;
     this.cookies = cookies;
@@ -27,10 +36,10 @@ export default class TestRun {
   _updateToInactiveParams() {
     testRunDebug(`#_updateToInactiveParams`);
     return {
-      TableName: process.env.recordingTaskTableName,
+      TableName: process.env.recordingTestTableName,
       Key: {
-        userId: this.userId,
-        noteId: this.noteId
+        teamId: this.teamId,
+        recordingId: this.recordingId
       },
       UpdateExpression: "SET isActive = :isActive",
       ExpressionAttributeValues: {
@@ -42,7 +51,7 @@ export default class TestRun {
   _createParams() {
     testRunDebug(`#_createParams`);
     return {
-      TableName: process.env.recordingTaskTableName,
+      TableName: process.env.recordingTestTableName,
       Item: this
     };
   }
@@ -50,7 +59,7 @@ export default class TestRun {
   _reinsertParams() {
     testRunDebug(`#_reinsertParams`);
     return {
-      TableName: process.env.recordingTaskTableName,
+      TableName: process.env.recordingTestTableName,
       Item: {
         ...this,
         expiration

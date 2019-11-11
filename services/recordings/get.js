@@ -1,22 +1,18 @@
 import { success, failure } from "../../libs/response-lib";
 import Recording from "../../classes/Recording";
+import User from "../../classes/User";
 
 export async function main(event, context) {
+  const authProvider =
+    event.requestContext.identity.cognitoAuthenticationProvider;
+  const user = await User.fetchFromAuthProvider(authProvider);
   const recording = Recording.from({
-    userId: event.requestContext.identity.cognitoIdentityId,
-    noteId: event.pathParameters.id
+    teamId: user.teamId,
+    recordingId: event.pathParameters.id
   });
-
-  console.log(event.requestContext);
-  console.log(event.pathParameters);
-  console.log(recording);
-  console.log(recording.noteId);
-  console.log(recording.userId);
 
   try {
     const result = await recording.get();
-    console.log("Successfully fetched recording:\n");
-    console.info(result);
     if (result.Item) {
       // Return the retrieved item
       return success(result.Item);

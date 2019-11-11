@@ -8,12 +8,12 @@ export async function main(event, context) {
 
   const authProvider =
     event.requestContext.identity.cognitoAuthenticationProvider;
-
   const user = await User.fetchFromAuthProvider(authProvider);
 
   const recording = new Recording({
     ...data,
-    userId: user.id
+    ownerId: user.id,
+    teamId: user.teamId
   });
 
   const testRun = new TestRun({

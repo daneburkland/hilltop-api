@@ -4,10 +4,10 @@ Resources:
     Properties:
       TableName: ${self:custom.userSettingsTableName}
       AttributeDefinitions:
-        - AttributeName: userId
+        - AttributeName: teamId
           AttributeType: S
       KeySchema:
-        - AttributeName: userId
+        - AttributeName: teamId
           KeyType: HASH
 
       # Set the capacity to auto-scale

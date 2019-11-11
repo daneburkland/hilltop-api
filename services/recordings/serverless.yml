@@ -1,4 +1,4 @@
-service: hilltop-api
+service: hilltop-recording-api
 
 # Create an optimized package for our functions
 package:
@@ -12,7 +12,7 @@ custom:
   # Our stage is based on what is passed in when running serverless
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
-  recordingTableName: ${self:custom.stage}-recordings-2
+  recordingTableName: ${self:custom.stage}-recordings
   # Load our secret environment variables based on the current stage.
   # Fallback to default if it is not in prod.
   environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
@@ -36,7 +36,7 @@ provider:
   # under process.env.
   environment:
     recordingTableName: ${self:custom.recordingTableName}
-    recordingTaskTableName: ${file(../recordingTasks/serverless.yml):custom.recordingTaskTableName}
+    recordingTestTableName: ${file(../recordingTests/serverless.yml):custom.recordingTestTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
@@ -61,7 +61,7 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTable, Arn]
-        - "Fn::ImportValue": ${self:custom.stage}-RecordingTaskTableArn
+        - "Fn::ImportValue": ${self:custom.stage}-RecordingTestTableArn
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
@@ -75,7 +75,7 @@ provider:
 
 functions:
   # Defines an HTTP API endpoint that calls the main function in create.js
-  # - path: url path is /notes
+  # - path: url path is /recordings
   # - method: POST request
   # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
   #     domain api call
@@ -84,55 +84,55 @@ functions:
     handler: create.main
     events:
       - http:
-          path: notes
+          path: recordings
           method: post
           cors: true
           authorizer: aws_iam
 
   get:
     # Defines an HTTP API endpoint that calls the main function in get.js
-    # - path: url path is /notes/{id}
+    # - path: url path is /recordings/{id}
     # - method: GET request
     handler: get.main
     events:
       - http:
-          path: notes/{id}
+          path: recordings/{id}
           method: get
           cors: true
           authorizer: aws_iam
 
   list:
     # Defines an HTTP API endpoint that calls the main function in list.js
-    # - path: url path is /notes
+    # - path: url path is /recordings
     # - method: GET request
     handler: list.main
     events:
       - http:
-          path: notes
+          path: recordings
           method: get
           cors: true
           authorizer: aws_iam
 
   update:
     # Defines an HTTP API endpoint that calls the main function in update.js
-    # - path: url path is /notes/{id}
+    # - path: url path is /recordings/{id}
     # - method: PUT request
     handler: update.main
     events:
       - http:
-          path: notes/{id}
+          path: recordings/{id}
           method: put
           cors: true
           authorizer: aws_iam
 
   delete:
     # Defines an HTTP API endpoint that calls the main function in delete.js
-    # - path: url path is /notes/{id}
+    # - path: url path is /recordings/{id}
     # - method: DELETE request
     handler: delete.main
     events:
       - http:
-          path: notes/{id}
+          path: recordings/{id}
           method: delete
           cors: true
           authorizer: aws_iam

@@ -4,12 +4,12 @@ Resources:
     Properties:
       TableName: ${self:custom.authFlowTableName}
       AttributeDefinitions:
-        - AttributeName: userId
+        - AttributeName: teamId
           AttributeType: S
         - AttributeName: origin
           AttributeType: S
       KeySchema:
-        - AttributeName: userId
+        - AttributeName: teamId
           KeyType: HASH
         - AttributeName: origin
           KeyType: RANGE
