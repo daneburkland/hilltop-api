@@ -30,6 +30,16 @@ Outputs:
   UserPoolId:
     Value:
       Ref: CognitoUserPool
+    Export:
+      Name: ${self:custom.stage}-UserPoolId
+
+  UserPoolArn:
+    Value:
+      Fn::GetAtt:
+        - CognitoUserPool
+        - Arn
+    Export:
+      Name: ${self:custom.stage}-UserPoolArn
 
   UserPoolClientId:
     Value:

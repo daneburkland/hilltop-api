@@ -18,6 +18,7 @@ export default class Recording {
     debugCode,
     cookies,
     userId,
+    teamId,
     isAuthFlow
   } = {}) {
     this.noteId = uuid.v1();
@@ -31,6 +32,7 @@ export default class Recording {
     this.isActive = true;
     this.nextScheduledTest = expiration;
     this.userId = userId;
+    this.teamId = teamId;
     this.results = [];
     this.isAuthFlow = isAuthFlow;
   }

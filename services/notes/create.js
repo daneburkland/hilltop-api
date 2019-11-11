@@ -1,15 +1,19 @@
 import { success, failure } from "../../libs/response-lib";
 import Recording from "../../classes/Recording";
 import TestRun from "../../classes/TestRun";
+import User from "../../classes/User";
 
 export async function main(event, context) {
   const data = JSON.parse(event.body);
 
-  const userId = event.requestContext.identity.cognitoIdentityId;
+  const authProvider =
+    event.requestContext.identity.cognitoAuthenticationProvider;
+
+  const user = await User.fetchFromAuthProvider(authProvider);
 
   const recording = new Recording({
     ...data,
-    userId
+    userId: user.id
   });
 
   const testRun = new TestRun({

@@ -20,6 +20,10 @@ custom:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
   screenshotsBucket:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+  userPoolArn:
+    "Fn::ImportValue": ${self:custom.stage}-UserPoolArn
+  userPoolId:
+    "Fn::ImportValue": ${self:custom.stage}-UserPoolId
 
 provider:
   name: aws
@@ -36,8 +40,14 @@ provider:
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
+    userPoolId: ${self:custom.userPoolId}
 
   iamRoleStatements:
+    - Action:
+        - cognito-idp:AdminGetUser
+      Resource:
+        - "Fn::GetAtt": [CognitoUserPool, Arn]
+      Effect: Allow
     - Effect: Allow
       Action:
         - dynamodb:DescribeTable
