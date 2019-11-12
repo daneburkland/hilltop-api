@@ -10,7 +10,7 @@ export async function main(event, context) {
   } = event.requestContext.identity;
   const user = await User.fetchFromAuthProvider(authProvider);
   const params = {
-    TableName: process.env.userSettingsTableName,
+    TableName: process.env.userTableName,
     Key: {
       teamId: user.teamId
     },

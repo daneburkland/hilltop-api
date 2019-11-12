@@ -1,0 +1,21 @@
+Resources:
+  TeamTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.teamTableName}
+      AttributeDefinitions:
+        - AttributeName: teamId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: teamId
+          KeyType: HASH
+
+      # Set the capacity to auto-scale
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  TeamTableArn:
+    Value:
+      Fn::GetAtt:
+        - TeamTable
+        - Arn
