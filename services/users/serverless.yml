@@ -13,6 +13,8 @@ custom:
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
   userTableName: ${self:custom.stage}-users
+  userPoolId:
+    "Fn::ImportValue": ${self:custom.stage}-UserPoolId
 
 provider:
   name: aws
@@ -25,8 +27,15 @@ provider:
   # under process.env.
   environment:
     userTableName: ${self:custom.userTableName}
+    userPoolId: ${self:custom.userPoolId}
 
   iamRoleStatements:
+    - Action:
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminCreateUser
+      Resource:
+        - "Fn::ImportValue": ${self:custom.stage}-UserPoolArn
+      Effect: Allow
     - Effect: Allow
       Action:
         - dynamodb:DescribeTable
@@ -56,6 +65,33 @@ functions:
       - http:
           path: get
           method: get
+          cors: true
+          authorizer: aws_iam
+
+  activate:
+    handler: activate.main
+    events:
+      - http:
+          path: activate
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  create:
+    handler: create.main
+    events:
+      - http:
+          path: create
+          method: post
+          cors: true
+          authorizer: aws_iam
+
+  createNewUser:
+    handler: createNewUser.main
+    events:
+      - http:
+          path: createNewUser
+          method: post
           cors: true
           authorizer: aws_iam
 

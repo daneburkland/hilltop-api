@@ -12,7 +12,7 @@ export async function main(event, context) {
 
   const recording = new Recording({
     ...data,
-    ownerId: user.id,
+    ownerId: user.userId,
     teamId: user.teamId
   });
 

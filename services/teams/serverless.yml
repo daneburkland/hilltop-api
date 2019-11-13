@@ -32,6 +32,7 @@ provider:
   iamRoleStatements:
     - Action:
         - cognito-idp:AdminGetUser
+        - cognito-idp:AdminCreateUser
       Resource:
         - "Fn::ImportValue": ${self:custom.stage}-UserPoolArn
       Effect: Allow
