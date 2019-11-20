@@ -8,8 +8,12 @@ export async function main(event, context) {
   const user = await User.fetchFromAuthProvider(authProvider);
 
   try {
-    const invitedUser = await user.createNewUser({ email: data.email });
-    return success(invitedUser);
+    const result = await user.createNewUser({ email: data.email });
+    if (result.Items) {
+      return success(result.Items);
+    } else {
+      return failure({ status: false, error: "No team members" });
+    }
   } catch (e) {
     console.error("Failed to create team user:\n");
     console.error(e);

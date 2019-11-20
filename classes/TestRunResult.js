@@ -17,11 +17,13 @@ class StepResult {
     this.elementScreenshot = resolvedParams.elementScreenshot;
     this.id = resolvedParams.id;
     this.isOk = resolvedParams.isOk;
+    this.error = resolvedParams.error;
   }
 
   static async build(
     { isOk, pageScreenshot, elementScreenshot, id } = {},
-    resultId
+    resultId,
+    error
   ) {
     stepResultDebug(`#build`);
     const resolvedPageScreenshot =
@@ -44,7 +46,8 @@ class StepResult {
       pageScreenshot: resolvedPageScreenshot,
       elementScreenshot: resolvedElementScreenshot,
       id,
-      isOk
+      isOk,
+      error: isOk ? null : error
     });
   }
 }
@@ -68,10 +71,12 @@ export default class TestRunResult {
       Object.keys(data.stepResults).map(async stepId => {
         resolvedStepResults[stepId] = await StepResult.build(
           data.stepResults[stepId],
-          id
+          id,
+          data.error
         );
       })
     );
+
     return new TestRunResult({
       error: data.error,
       authedCookies: data.authedCookies,

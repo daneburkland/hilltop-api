@@ -28,6 +28,7 @@ provider:
   environment:
     teamTableName: ${self:custom.teamTableName}
     userPoolId: ${self:custom.userPoolId}
+    authFlowTableName: ${file(../recordingTests/serverless.yml):custom.authFlowTableName}
 
   iamRoleStatements:
     - Action:
@@ -49,6 +50,7 @@ provider:
       # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [TeamTable, Arn]
+        - "Fn::ImportValue": ${self:custom.stage}-AuthFlowTableArn
 
 functions:
   create:
@@ -65,6 +67,15 @@ functions:
     events:
       - http:
           path: team
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+  getAuthFlow:
+    handler: getAuthFlow.main
+    events:
+      - http:
+          path: authFlow
           method: get
           cors: true
           authorizer: aws_iam

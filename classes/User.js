@@ -29,6 +29,21 @@ export default class User {
     };
   }
 
+  _getTeamParams() {
+    userDebug(`#_getTeamParams`);
+    return {
+      TableName: process.env.userTableName,
+      ProjectionExpression: "#teamId, activeStatus, email",
+      FilterExpression: "#teamId = :teamId",
+      ExpressionAttributeNames: {
+        "#teamId": "teamId"
+      },
+      ExpressionAttributeValues: {
+        ":teamId": this.teamId
+      }
+    };
+  }
+
   _activateParams() {
     userDebug(`#_activateParams`);
     return {
@@ -134,7 +149,20 @@ export default class User {
       console.error("failed to create user", e);
     }
 
+    let team;
+    try {
+      team = await this.getTeam();
+    } catch (e) {
+      console.error("failed to get team", e);
+    }
+
     // TODO: this should return a scan by teamId
-    return await user;
+    return team;
+  }
+
+  async getTeam() {
+    userDebug(`#getTeam`);
+    const result = await dynamoDbLib.call("scan", this._getTeamParams());
+    return result;
   }
 }

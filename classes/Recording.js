@@ -19,7 +19,8 @@ export default class Recording {
     cookies,
     ownerId,
     teamId,
-    isAuthFlow
+    isAuthFlow,
+    name
   } = {}) {
     this.recordingId = uuid.v1();
     this.steps = steps;
@@ -29,12 +30,13 @@ export default class Recording {
     this.cookies = cookies;
     this.authedCookies = null;
     this.createdAt = Date.now();
-    this.isActive = true;
+    this.isActive = !isAuthFlow;
     this.nextScheduledTest = expiration;
     this.ownerId = ownerId;
     this.teamId = teamId;
     this.results = [];
     this.isAuthFlow = isAuthFlow;
+    this.name = name;
   }
 
   static from(json) {
@@ -92,6 +94,21 @@ export default class Recording {
     };
   }
 
+  _updateAuthedCookiesParams() {
+    recordingDebug(`#_updateAuthedCookiesParams`);
+    return {
+      TableName: process.env.recordingTableName,
+      Key: {
+        teamId: this.teamId,
+        recordingId: this.recordingId
+      },
+      UpdateExpression: "SET authedCookies = :authedCookies",
+      ExpressionAttributeValues: {
+        ":authedCookies": this.authedCookies
+      }
+    };
+  }
+
   _updateToInactiveParams() {
     recordingDebug(`#_updateToInactiveParams`);
     return {
@@ -118,13 +135,14 @@ export default class Recording {
         recordingId: this.recordingId
       },
       UpdateExpression:
-        "SET #attrName = list_append(if_not_exists(#attrName, :empty_list), :attrValue)",
+        "SET #attrName = list_append(if_not_exists(#attrName, :empty_list), :attrValue), latestResult = :latestResult",
       ExpressionAttributeNames: {
         "#attrName": "results"
       },
       ExpressionAttributeValues: {
         ":attrValue": [result],
-        ":empty_list": []
+        ":empty_list": [],
+        ":latestResult": result
       }
     };
   }
@@ -187,6 +205,11 @@ export default class Recording {
     await authFlow.update();
   }
 
+  async _updateAuthedCookies() {
+    recordingDebug(`#_updateAuthedCookies`);
+    await dynamoDbLib.call("update", this._updateAuthedCookiesParams());
+  }
+
   async _updateCookies() {
     recordingDebug(`#_updateCookies`);
     const authFlow = await AuthFlow.get({
@@ -214,6 +237,11 @@ export default class Recording {
     }
 
     this.authedCookies = authFlowRecording.authedCookies;
+    try {
+      await this._updateAuthedCookies();
+    } catch (e) {
+      console.error("failed to update authed cookies", e);
+    }
   }
 
   async execute() {
@@ -225,6 +253,10 @@ export default class Recording {
     }
 
     let result;
+
+    const context = this.isAuthFlow
+      ? { cookies: [] }
+      : { cookies: this.authedCookies || this.cookies };
     try {
       const response = await axios({
         method: "POST",
@@ -237,7 +269,7 @@ export default class Recording {
         timeout: 25000,
         data: {
           code: this.code,
-          context: { cookies: this.authedCookies || this.cookies }
+          context
         }
       });
       result = await TestRunResult.build(response);
@@ -249,19 +281,19 @@ export default class Recording {
       });
     }
 
-    if (!!this.isAuthFlow && !result.error) {
-      try {
-        await this._updateAuthFlow(result);
-        this.authedCookies = result.authedCookies;
-      } catch (e) {
-        console.log("failed to update auth flow", e);
-      }
-    }
-
     try {
       await this._addResult(result);
     } catch (e) {
       console.log("failure", e);
+    }
+
+    if (!!this.isAuthFlow && !result.error) {
+      try {
+        await this._updateAuthFlow(result);
+        console.log("result.authedCookies", result.authedCookies);
+      } catch (e) {
+        console.log("failed to update auth flow", e);
+      }
     }
   }
 }
