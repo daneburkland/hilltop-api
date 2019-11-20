@@ -123,6 +123,15 @@ Resources:
                       - - "arn:aws:s3:::"
                         - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
                         - "/*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:*"
+                Resource:
+                  - Fn::Join:
+                      - ""
+                      - - "arn:aws:s3:::"
+                        - "Fn::ImportValue": ${self:custom.stage}-TracingBucket
+                        - "/*"
 
 # Print out the Id of the Identity Pool that is created
 Outputs:

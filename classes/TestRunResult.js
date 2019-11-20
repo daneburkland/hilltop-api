@@ -1,6 +1,7 @@
 import { putObjectToS3 } from "../libs/s3-lib";
 import uuid from "uuid";
 import { debug } from "../utils";
+import Tracing from "./Tracing";
 
 const testRunResultDebug = debug("TestRunResult");
 testRunResultDebug.enabled = true;
@@ -67,6 +68,10 @@ export default class TestRunResult {
     testRunResultDebug(`#build: %o`, data);
     const id = uuid.v1();
     const resolvedStepResults = {};
+
+    const tracing = new Tracing({ data: data.tracing });
+    await tracing.store({ resultId: id });
+
     await Promise.all(
       Object.keys(data.stepResults).map(async stepId => {
         resolvedStepResults[stepId] = await StepResult.build(

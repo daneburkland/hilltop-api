@@ -20,6 +20,10 @@ custom:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
   screenshotsBucket:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+  tracingBucketArn:
+    "Fn::ImportValue": ${self:custom.stage}-TracingBucketArn
+  tracingBucket:
+    "Fn::ImportValue": ${self:custom.stage}-TracingBucket
   userPoolArn:
     "Fn::ImportValue": ${self:custom.stage}-UserPoolArn
   userPoolId:
@@ -39,6 +43,8 @@ provider:
     recordingTestTableName: ${file(../recordingTests/serverless.yml):custom.recordingTestTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
+    tracingBucketArn: ${self:custom.tracingBucketArn}
+    tracingBucket: ${self:custom.tracingBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
     userPoolId: ${self:custom.userPoolId}
 
@@ -71,6 +77,16 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+            - "/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+        - "s3:PutObjectAcl"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "Fn::ImportValue": ${self:custom.stage}-TracingBucket
             - "/*"
 
 functions:
@@ -145,6 +161,7 @@ resources:
   - ${file(../../resources/recording-table.yml)}
   # S3
   - ${file(../../resources/screenshots-bucket.yml)}
+  - ${file(../../resources/tracing-bucket.yml)}
   # Cognito
   - ${file(../../resources/cognito-user-pool.yml)}
   - ${file(../../resources/cognito-identity-pool.yml)}

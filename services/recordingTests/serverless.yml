@@ -20,6 +20,10 @@ custom:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
   screenshotsBucket:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+  tracingBucketArn:
+    "Fn::ImportValue": ${self:custom.stage}-TracingBucketArn
+  tracingBucket:
+    "Fn::ImportValue": ${self:custom.stage}-TracingBucket
 
 provider:
   name: aws
@@ -36,6 +40,8 @@ provider:
     recordingTableName: ${file(../recordings/serverless.yml):custom.recordingTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
+    tracingBucketArn: ${self:custom.tracingBucketArn}
+    tracingBucket: ${self:custom.tracingBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
 
   iamRoleStatements:
@@ -67,6 +73,16 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucket
+            - "/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+        - "s3:PutObjectAcl"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "Fn::ImportValue": ${self:custom.stage}-TracingBucket
             - "/*"
 
 functions:

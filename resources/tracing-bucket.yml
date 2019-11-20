@@ -1,0 +1,56 @@
+Resources:
+  TracingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Set the CORS policy
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - "*"
+            AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            MaxAge: 3000
+
+  TracingBucketAllowPublicReadPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Principal: "*"
+            Effect: Allow
+            Action:
+              - "s3:GetObject"
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - "Fn::ImportValue": ${self:custom.stage}-TracingBucket
+                    - "/public/*"
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - "Fn::ImportValue": ${self:custom.stage}-TracingBucket
+                    - "/*"
+      Bucket:
+        Ref: TracingBucket
+
+Outputs:
+  TracingBucketName:
+    Value:
+      Ref: TracingBucket
+    Export:
+      Name: ${self:custom.stage}-TracingBucket
+
+  TracingBucketArn:
+    Value:
+      Fn::GetAtt:
+        - TracingBucket
+        - Arn
+    Export:
+      Name: ${self:custom.stage}-TracingBucketArn
