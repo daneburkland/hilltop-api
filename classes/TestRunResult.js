@@ -62,6 +62,7 @@ export default class TestRunResult {
     this.error = resolvedParams.error;
     this.stepResults = resolvedParams.stepResults;
     this.authedCookies = resolvedParams.authedCookies;
+    this.tracing = resolvedParams.tracing;
   }
 
   static async build({ data }) {
@@ -70,7 +71,7 @@ export default class TestRunResult {
     const resolvedStepResults = {};
 
     const tracing = new Tracing({ data: data.tracing });
-    await tracing.store({ resultId: id });
+    const resolvedTracing = await tracing.store({ resultId: id });
 
     await Promise.all(
       Object.keys(data.stepResults).map(async stepId => {
@@ -85,7 +86,8 @@ export default class TestRunResult {
     return new TestRunResult({
       error: data.error,
       authedCookies: data.authedCookies,
-      stepResults: resolvedStepResults
+      stepResults: resolvedStepResults,
+      tracing: resolvedTracing
     });
   }
 

@@ -11,10 +11,11 @@ export default class Tracing {
 
   async store({ resultId }) {
     tracingDebug(`#store`);
-    await putObjectToS3({
+    const stored = await putObjectToS3({
       bucket: process.env.tracingBucket,
       key: `${resultId}-tracing`,
       data: this.data
     });
+    return stored;
   }
 }
