@@ -13,8 +13,6 @@ custom:
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
   recordingTableName: ${self:custom.stage}-recordings
-  # Load our secret environment variables based on the current stage.
-  # Fallback to default if it is not in prod.
   environment: ${file(env.yml):${self:custom.stage}, file(env.yml):default}
   screenshotsBucketArn:
     "Fn::ImportValue": ${self:custom.stage}-ScreenshotsBucketArn
@@ -41,6 +39,7 @@ provider:
   environment:
     recordingTableName: ${self:custom.recordingTableName}
     recordingTestTableName: ${file(../recordingTests/serverless.yml):custom.recordingTestTableName}
+    authFlowTableName: ${file(../recordingTests/serverless.yml):custom.authFlowTableName}
     screenshotsBucketArn: ${self:custom.screenshotsBucketArn}
     screenshotsBucket: ${self:custom.screenshotsBucket}
     tracingBucketArn: ${self:custom.tracingBucketArn}
@@ -63,11 +62,10 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      # Restrict our IAM role permissions to
-      # the specific table for the stage
       Resource:
         - "Fn::GetAtt": [RecordingTable, Arn]
         - "Fn::ImportValue": ${self:custom.stage}-RecordingTestTableArn
+        - "Fn::ImportValue": ${self:custom.stage}-AuthFlowTableArn
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
@@ -90,12 +88,6 @@ provider:
             - "/*"
 
 functions:
-  # Defines an HTTP API endpoint that calls the main function in create.js
-  # - path: url path is /recordings
-  # - method: POST request
-  # - cors: enabled CORS (Cross-Origin Resource Sharing) for browser cross
-  #     domain api call
-  # - authorizer: authenticate using the AWS IAM role
   create:
     handler: create.main
     events:
@@ -106,9 +98,6 @@ functions:
           authorizer: aws_iam
 
   get:
-    # Defines an HTTP API endpoint that calls the main function in get.js
-    # - path: url path is /recordings/{id}
-    # - method: GET request
     handler: get.main
     events:
       - http:
@@ -117,10 +106,16 @@ functions:
           cors: true
           authorizer: aws_iam
 
+  execute:
+    handler: execute.main
+    events:
+      - http:
+          path: execute/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+
   list:
-    # Defines an HTTP API endpoint that calls the main function in list.js
-    # - path: url path is /recordings
-    # - method: GET request
     handler: list.main
     events:
       - http:
@@ -130,9 +125,6 @@ functions:
           authorizer: aws_iam
 
   update:
-    # Defines an HTTP API endpoint that calls the main function in update.js
-    # - path: url path is /recordings/{id}
-    # - method: PUT request
     handler: update.main
     events:
       - http:
@@ -142,9 +134,6 @@ functions:
           authorizer: aws_iam
 
   delete:
-    # Defines an HTTP API endpoint that calls the main function in delete.js
-    # - path: url path is /recordings/{id}
-    # - method: DELETE request
     handler: delete.main
     events:
       - http:

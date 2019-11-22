@@ -9,11 +9,7 @@ const stepResultDebug = debug("StepResult");
 stepResultDebug.enabled = true;
 
 class StepResult {
-  constructor(resolvedParams) {
-    if (typeof resolvedParams === "undefined") {
-      throw new Error("Cannot be called directly");
-    }
-
+  constructor(resolvedParams = {}) {
     this.pageScreenshot = resolvedParams.pageScreenshot;
     this.elementScreenshot = resolvedParams.elementScreenshot;
     this.id = resolvedParams.id;
@@ -54,15 +50,13 @@ class StepResult {
 }
 
 export default class TestRunResult {
-  constructor(resolvedParams) {
-    if (typeof resolvedParams === "undefined") {
-      throw new Error("Cannot be called directly");
-    }
-
+  constructor(resolvedParams = {}) {
     this.error = resolvedParams.error;
     this.stepResults = resolvedParams.stepResults;
     this.authedCookies = resolvedParams.authedCookies;
     this.tracing = resolvedParams.tracing;
+    this.measurements = resolvedParams.measurements;
+    this.createdAt = new Date();
   }
 
   static async build({ data }) {
@@ -86,12 +80,13 @@ export default class TestRunResult {
     return new TestRunResult({
       error: data.error,
       authedCookies: data.authedCookies,
+      measurements: data.measurements,
       stepResults: resolvedStepResults,
       tracing: resolvedTracing
     });
   }
 
-  static async from(json) {
+  static from(json) {
     testRunResultDebug(`#from: %o`, json);
     return Object.assign(new TestRunResult(), json);
   }

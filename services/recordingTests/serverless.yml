@@ -94,6 +94,7 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
+
   pause:
     handler: pause.main
     events:
@@ -102,13 +103,15 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
-  run:
-    handler: run.main
+
+  executeScheduled:
+    handler: executeScheduled.main
     events:
       - stream:
           type: dynamodb
           arn:
             Fn::GetAtt: [RecordingTestTable, StreamArn]
+
   reinsert:
     handler: reinsert.main
     events:

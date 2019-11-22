@@ -167,6 +167,19 @@ export default class Recording {
     await dynamoDbLib.call("update", this._updateNextScheduledTestParams());
   }
 
+  static async get({ teamId, recordingId }) {
+    try {
+      const { Item: recording } = await Recording.from({
+        teamId,
+        recordingId
+      }).get();
+      return Recording.from(recording);
+    } catch (e) {
+      console.error("failed to get Recording:", e);
+      return e;
+    }
+  }
+
   async get() {
     recordingDebug(`#get`);
     const result = await dynamoDbLib.call("get", this._getParams());
@@ -221,11 +234,10 @@ export default class Recording {
     if (!authFlow) return;
     let authFlowRecording;
     try {
-      const result = await Recording.from({
+      authFlowRecording = await Recording.get({
         teamId: authFlow.teamId,
         recordingId: authFlow.recordingId
-      }).get();
-      authFlowRecording = Recording.from(result.Item);
+      });
     } catch (e) {
       console.log("error fetching authFlowRecording", e);
     }
@@ -275,9 +287,9 @@ export default class Recording {
       result = await TestRunResult.build(response);
     } catch (error) {
       console.error("Failed to run function:\n");
-      console.error(error);
+      console.error(error.response);
       result = TestRunResult.from({
-        data: { error: error.data }
+        error: error.data || (error.response && error.response.data)
       });
     }
 
@@ -295,5 +307,8 @@ export default class Recording {
         console.log("failed to update auth flow", e);
       }
     }
+
+    const { Item: updated } = await this.get();
+    return updated;
   }
 }
