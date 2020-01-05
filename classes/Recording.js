@@ -287,6 +287,7 @@ export default class Recording {
       result = await TestRunResult.build(response);
     } catch (error) {
       console.error("Failed to run function:\n");
+      console.error(error);
       console.error(error.response);
       result = TestRunResult.from({
         error: error.data || (error.response && error.response.data)

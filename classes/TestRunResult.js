@@ -22,7 +22,7 @@ class StepResult {
     resultId,
     error
   ) {
-    stepResultDebug(`#build`);
+    stepResultDebug(`#build`, isOk, pageScreenshot, elementScreenshot);
     const resolvedPageScreenshot =
       pageScreenshot &&
       (await putObjectToS3({
@@ -52,11 +52,12 @@ class StepResult {
 export default class TestRunResult {
   constructor(resolvedParams = {}) {
     this.error = resolvedParams.error;
+    this.isOk = !resolvedParams.error;
     this.stepResults = resolvedParams.stepResults;
     this.authedCookies = resolvedParams.authedCookies;
     this.tracing = resolvedParams.tracing;
     this.measurements = resolvedParams.measurements;
-    this.createdAt = new Date();
+    this.createdAt = Date.now();
   }
 
   static async build({ data }) {
@@ -65,7 +66,9 @@ export default class TestRunResult {
     const resolvedStepResults = {};
 
     const tracing = new Tracing({ data: data.tracing });
-    const resolvedTracing = await tracing.store({ resultId: id });
+    const resolvedTracing = !!tracing.data
+      ? await tracing.store({ resultId: id })
+      : null;
 
     await Promise.all(
       Object.keys(data.stepResults).map(async stepId => {

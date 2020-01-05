@@ -24,10 +24,12 @@ custom:
     "Fn::ImportValue": ${self:custom.stage}-TracingBucketArn
   tracingBucket:
     "Fn::ImportValue": ${self:custom.stage}-TracingBucket
+  userPoolId:
+    "Fn::ImportValue": ${self:custom.stage}-UserPoolId
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs10.x
   stage: dev
   region: us-east-1
   timeout: 30
@@ -43,8 +45,14 @@ provider:
     tracingBucketArn: ${self:custom.tracingBucketArn}
     tracingBucket: ${self:custom.tracingBucket}
     hilltopChromeUrl: ${self:custom.environment.hilltopChromeUrl}
+    userPoolId: ${self:custom.userPoolId}
 
   iamRoleStatements:
+    - Action:
+        - cognito-idp:AdminGetUser
+      Resource:
+        - "Fn::ImportValue": ${self:custom.stage}-UserPoolArn
+      Effect: Allow
     - Effect: Allow
       Action:
         - dynamodb:DescribeStream

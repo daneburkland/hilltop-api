@@ -7,7 +7,7 @@ export async function putObjectToS3({ key, data, bucket }) {
     ACL: "public-read-write",
     Bucket: bucket,
     Key: `public/${key}`,
-    Body: new Buffer(data)
+    Body: Buffer.from(data)
   };
   await s3.putObject(params).promise();
   return { bucket, key };
